@@ -1,0 +1,42 @@
+{
+    "activeFile": "assets/images/maps/biome2/data.json",
+    "expandedProjectPaths": [
+        "assets/images/maps/biome1",
+        "assets/images/maps/biome2",
+        "assets/images/maps"
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "assets/images/maps/biome1/data.json": {
+            "scale": 0.7797916666666665,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 241.73123163238046,
+                "y": 161.58161902217472
+            }
+        },
+        "assets/images/maps/biome1/tileset.json": {
+            "scaleInDock": 1
+        },
+        "assets/images/maps/biome2/data.json": {
+            "scale": 0.7546370967741934,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 330.622495324606,
+                "y": 250.4515094843709
+            }
+        },
+        "assets/images/maps/biome2/tileset.json": {
+            "scaleInDock": 1
+        }
+    },
+    "openFiles": [
+        "assets/images/maps/biome1/data.json",
+        "assets/images/maps/biome2/data.json"
+    ],
+    "project": "project_armoire.tiled-project",
+    "recentFiles": [
+        "assets/images/maps/biome1/data.json",
+        "assets/images/maps/biome2/data.json"
+    ]
+}
