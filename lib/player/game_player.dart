@@ -1,7 +1,9 @@
 import 'package:bonfire/bonfire.dart';
 import 'package:bonfire/util/collision/object_collision.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_armoire/main.dart';
+import 'package:project_armoire/maps/mainmap.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
   final Position initPosition;
@@ -13,14 +15,14 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
   GamePlayer(this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
       : super(
           animation:SimpleDirectionAnimation(
-              idleTop: spriteSheet.createAnimation(0, stepTime: 0.1),
-              idleBottom: spriteSheet.createAnimation(1, stepTime: 0.1),
-              idleLeft: spriteSheet.createAnimation(2, stepTime: 0.1),
-              idleRight: spriteSheet.createAnimation(3, stepTime: 0.1),
-              runTop: spriteSheet.createAnimation(4, stepTime: 0.1),
-              runBottom: spriteSheet.createAnimation(5, stepTime: 0.1),
-              runLeft: spriteSheet.createAnimation(6, stepTime: 0.1),
-              runRight: spriteSheet.createAnimation(7, stepTime: 0.1),
+              idleTop: spriteSheet.createAnimation(0, stepTime: 0.1, loop: true, from: 0, to: 1),
+              idleBottom: spriteSheet.createAnimation(2, stepTime: 0.1, loop: true, from: 0, to: 1),
+              idleLeft: spriteSheet.createAnimation(1, stepTime: 0.1, loop: true, from: 0, to: 1),
+              idleRight: spriteSheet.createAnimation(3, stepTime: 0.1, loop: true, from: 0, to: 1),
+              runTop: spriteSheet.createAnimation(8, stepTime: 0.1),
+              runBottom: spriteSheet.createAnimation(10, stepTime: 0.1),
+              runLeft: spriteSheet.createAnimation(9, stepTime: 0.1),
+              runRight: spriteSheet.createAnimation(11, stepTime: 0.1),
           ),
           width: sizePlayer,
           height: sizePlayer,
@@ -49,6 +51,15 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     }
     super.joystickChangeDirectional(event);
     isWater = tileIsWater();
+  }
+
+  @override
+  void joystickAction(JoystickActionEvent event) {
+    if (isDead) return;
+
+    MainMap.isCloaked = !MainMap.isCloaked;
+
+    super.joystickAction(event);
   }
 
   @override

@@ -9,6 +9,7 @@ import 'package:project_armoire/util/extensions.dart';
 class MainMap extends StatelessWidget {
   final ShowInEnum showInEnum;
   static String mapLocation = 'biome1';
+  static bool isCloaked = false;
 
   const MainMap({Key key, this.showInEnum = ShowInEnum.left}) : super(key: key);
   @override
@@ -23,10 +24,21 @@ class MainMap extends StatelessWidget {
       joystick: Joystick(
         keyboardEnable: true,
         directional: JoystickDirectional(),
+        actions: [
+          JoystickAction(
+            actionId: 1, //(required) Action identifier, will be sent to 'void joystickAction(JoystickActionEvent event) {}' when pressed
+            sprite: Sprite('buttons/background.png'), // the action image
+            spritePressed: Sprite('buttons/atack_range.png'), // Optional image to be shown when the action is fired
+            align: JoystickActionAlign.BOTTOM_RIGHT,
+            color: Colors.blue,
+            size: 50,
+            margin: EdgeInsets.only(bottom: 50, right: 160),
+          )
+        ],
       ),
       player: GamePlayer(
         _getInitPosition(),
-        SpriteSheetHero.hero1,
+        MainMap.isCloaked ? SpriteSheetHero.cloaked : SpriteSheetHero.uncloaked,
         initDirection: _getDirection(),
       ),
       map: TiledWorldMap(

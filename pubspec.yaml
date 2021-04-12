@@ -44,4 +44,5 @@ flutter:
   assets:
     - assets/images/maps/biome1/
     - assets/images/maps/biome2/
+    - assets/images/buttons/
     - assets/images/
