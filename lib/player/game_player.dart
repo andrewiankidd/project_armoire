@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_armoire/main.dart';
 import 'package:project_armoire/maps/mainmap.dart';
+import 'package:project_armoire/player/sprite_sheet_hero.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
   final Position initPosition;
@@ -16,13 +17,20 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
       : super(
           animation:SimpleDirectionAnimation(
               idleTop: spriteSheet.createAnimation(0, stepTime: 0.1, loop: true, from: 0, to: 1),
-              idleBottom: spriteSheet.createAnimation(2, stepTime: 0.1, loop: true, from: 0, to: 1),
               idleLeft: spriteSheet.createAnimation(1, stepTime: 0.1, loop: true, from: 0, to: 1),
+              idleBottom: spriteSheet.createAnimation(2, stepTime: 0.1, loop: true, from: 0, to: 1),
               idleRight: spriteSheet.createAnimation(3, stepTime: 0.1, loop: true, from: 0, to: 1),
               runTop: spriteSheet.createAnimation(8, stepTime: 0.1),
-              runBottom: spriteSheet.createAnimation(10, stepTime: 0.1),
               runLeft: spriteSheet.createAnimation(9, stepTime: 0.1),
+              runBottom: spriteSheet.createAnimation(10, stepTime: 0.1),
               runRight: spriteSheet.createAnimation(11, stepTime: 0.1),
+              others:
+              {
+                "castTop": spriteSheet.createAnimation(12, stepTime: 0.1, from: 0, to: 5, loop: false),
+                "castLeft": spriteSheet.createAnimation(13, stepTime: 0.1, from: 0, to: 5, loop: false),
+                "castBottom": spriteSheet.createAnimation(14, stepTime: 0.1, from: 0, to: 5, loop: false),
+                "castRight": spriteSheet.createAnimation(15, stepTime: 0.1, from: 0, to: 5, loop: false),
+              }
           ),
           width: sizePlayer,
           height: sizePlayer,
@@ -57,7 +65,17 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
   void joystickAction(JoystickActionEvent event) {
     if (isDead) return;
 
-    MainMap.isCloaked = !MainMap.isCloaked;
+    String dir = (super.lastDirection.toString().split(".")[1].inCaps);
+
+    switch (event.id) {
+      case 1: {
+        this.attack(dir);
+        break;
+      }
+      default: {
+
+      }
+    }
 
     super.joystickAction(event);
   }
@@ -83,4 +101,25 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
   }
 
   bool tileIsWater() => tileTypeBelow() == 'water';
+
+  void attack(String direction) {
+    String animName = 'cast' + direction;
+    this.playOtherAnimation(animName, (){
+      // give damage
+    });
+  }
+
+  void playOtherAnimation(String animName, Function onFinish) {
+    var anim = super.animation.others[animName];
+    super.animation.playOnce(anim, onFinish: (){
+      anim.reset();
+      onFinish();
+    }, runToTheEnd: true);
+  }
+}
+
+extension CapExtension on String {
+  String get inCaps => this.length > 0 ?'${this[0].toUpperCase()}${this.substring(1)}':'';
+  String get allInCaps => this.toUpperCase();
+  String get capitalizeFirstofEach => this.replaceAll(RegExp(' +'), ' ').split(" ").map((str) => str.inCaps).join(" ");
 }

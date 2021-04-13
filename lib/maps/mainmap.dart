@@ -9,7 +9,6 @@ import 'package:project_armoire/util/extensions.dart';
 class MainMap extends StatelessWidget {
   final ShowInEnum showInEnum;
   static String mapLocation = 'biome1';
-  static bool isCloaked = false;
 
   const MainMap({Key key, this.showInEnum = ShowInEnum.left}) : super(key: key);
   @override
@@ -38,7 +37,7 @@ class MainMap extends StatelessWidget {
       ),
       player: GamePlayer(
         _getInitPosition(),
-        MainMap.isCloaked ? SpriteSheetHero.cloaked : SpriteSheetHero.uncloaked,
+        SpriteSheetHero.current,
         initDirection: _getDirection(),
       ),
       map: TiledWorldMap(

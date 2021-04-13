@@ -11,6 +11,7 @@ class SpriteSheetHero {
     );
   }
 
+  static SpriteSheet current = SpriteSheetHero.cloaked;
   static SpriteSheet get cloaked => _create('cloaked.png');
   static SpriteSheet get uncloaked => _create('uncloaked.png');
   static SpriteSheet get hero3 => _create('hero3.png');
