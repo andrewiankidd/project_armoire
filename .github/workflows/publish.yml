@@ -14,11 +14,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        
-      - name: RSync Setup 🔧
-        run: |
-          apt-get install rsync
-        
+
       - name: Java Setup (?)
         uses: actions/setup-java@v1
         with:
