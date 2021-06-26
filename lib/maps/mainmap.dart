@@ -38,11 +38,6 @@ class MainMap extends StatelessWidget {
               Position(x, y),
               width,
               height,
-              /*
-              Position(double.parse(object['x']), double.parse(object['y'])),
-              double.parse(object['width']),
-              double.parse(object['height']),
-              */
               (v) => _exitMap(v, context),
            ),
           );
