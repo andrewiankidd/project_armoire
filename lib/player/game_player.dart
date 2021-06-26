@@ -1,10 +1,7 @@
 import 'package:bonfire/bonfire.dart';
 import 'package:bonfire/util/collision/object_collision.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:project_armoire/main.dart';
-import 'package:project_armoire/maps/mainmap.dart';
-import 'package:project_armoire/player/sprite_sheet_hero.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
   final Position initPosition;

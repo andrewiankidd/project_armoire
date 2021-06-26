@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_armoire/main.dart';
 import 'package:project_armoire/player/game_player.dart';
 import 'package:project_armoire/player/sprite_sheet_hero.dart';
@@ -9,14 +11,57 @@ import 'package:project_armoire/util/extensions.dart';
 class MainMap extends StatelessWidget {
   final ShowInEnum showInEnum;
   static String mapLocation = 'biome1';
+  static TiledWorldMap mapData;
 
   const MainMap({Key key, this.showInEnum = ShowInEnum.left}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    return this.buildMap(context);
+    print('map init');
+    MainMap.mapData = this.initMap(context);
+
+    print('object loader init');
+    rootBundle.loadString('assets/images/' + MainMap.mapData.path).then((String result){
+      final decoded = json.decode(result);
+      print('mapdata decoded successfully');
+
+      final Iterable objectGroups = decoded['layers'].where((element) => element["type"] == "objectgroup");
+      print('found ${objectGroups.length} objectGroups');
+
+      objectGroups.forEach((objectGroup) {
+
+        print('objectGroup: ${objectGroup['name']}');
+        objectGroup['objects'].forEach((object) {
+          MainMap.mapData.registerObject(
+            object['name'],
+            (x, y, width, height) => ExitMapSensor(
+              object['name'],
+              Position(x, y),
+              width,
+              height,
+              /*
+              Position(double.parse(object['x']), double.parse(object['y'])),
+              double.parse(object['width']),
+              double.parse(object['height']),
+              */
+              (v) => _exitMap(v, context),
+           ),
+          );
+        });
+
+      });
+    });
+
+    return this.buildInterface(context);
   }
 
-  Widget buildMap(BuildContext context) {
+  TiledWorldMap initMap(BuildContext context) {
+    return TiledWorldMap(
+      'maps/${MainMap.mapLocation}/data.json',
+      forceTileSize: Size(tileSize, tileSize),
+    );
+  }
+
+  Widget buildInterface(BuildContext context) {
     return BonfireTiledWidget(
       showCollisionArea: true,
       showFPS: true,
@@ -40,19 +85,8 @@ class MainMap extends StatelessWidget {
         SpriteSheetHero.current,
         initDirection: _getDirection(),
       ),
-      map: TiledWorldMap(
-        'maps/${MainMap.mapLocation}/data.json',
-        forceTileSize: Size(tileSize, tileSize),
-      )..registerObject(
-        'sensorRight',
-            (x, y, width, height) => ExitMapSensor(
-          'sensorRight',
-          Position(x, y),
-          width,
-          height,
-              (v) => _exitMap(v, context),
-        ),
-      ),
+      map: MainMap.mapData,
+      colorFilter: GameColorFilter(color: Color.fromRGBO(255, 112, 214, 0.66), blendMode: BlendMode.hue),
       cameraMoveOnlyMapArea: true,
       progress: SizedBox.shrink(),
     );
@@ -78,12 +112,11 @@ class MainMap extends StatelessWidget {
   }
 
   void _exitMap(String value, BuildContext context) {
-    if (value == 'sensorRight') {
-      MainMap.mapLocation = 'biome2';
-      context.goTo(MainMap(
-        showInEnum: ShowInEnum.left,
-      ));
-    }
+    var mapName = value.substring(value.lastIndexOf(":") + 1, value.length);
+    MainMap.mapLocation = mapName;
+    context.goTo(MainMap(
+      showInEnum: ShowInEnum.left,
+    ));
   }
 
   Direction _getDirection() {
