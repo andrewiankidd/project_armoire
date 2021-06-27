@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:project_armoire/main.dart';
 import 'package:project_armoire/player/game_player.dart';
 import 'package:project_armoire/player/sprite_sheet_hero.dart';
@@ -58,7 +59,7 @@ class MainMap extends StatelessWidget {
 
   Widget buildInterface(BuildContext context) {
     return BonfireTiledWidget(
-      showCollisionArea: true,
+      showCollisionArea: kDebugMode,
       showFPS: true,
       joystick: Joystick(
         keyboardEnable: true,
