@@ -117,18 +117,15 @@ jobs:
             flutter config --enable-windows-desktop
             flutter build windows
       
-      - name: Archive Release
-        uses: thedoctor0/zip-release@master
-        with:
-          path: .\build\windows\runner\Release
-          filename: .\build\windows\runner\Windows.zip
+      - name: Zip Windows release directory
+        run: 7z a build\windows\runner\Release.zip build\windows\runner\Release\
       
-      - name: upload Windows Executable
+      - name: Upload Windows Executable
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.prepare_release.outputs.upload_url }}
-          asset_path: .\build\windows\runner\Windows.zip
+          asset_path: .\build\windows\runner\Release.zip
           asset_name: windows-release.zip
           asset_content_type: application/zip
