@@ -12,6 +12,8 @@ jobs:
   prepare_release:
     name: Prepare release
     runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Prepare release
         uses: actions/create-release@v1
@@ -24,6 +26,10 @@ jobs:
           #body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          
+      - id: step_upload_url
+        name: Set Release Upload URL for proceeding steps
+        run: echo "::set-output name=upload_url::${{ steps.create_release.outputs.upload_url }}"
 
   build_web:
     name: Build Web Client
@@ -77,7 +83,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ needs.prepare_release.outputs.upload_url }}
           asset_path: ./build/app/outputs/flutter-apk/app-release.apk
           asset_name: android-release.apk
           asset_content_type: application/zip
