@@ -4,6 +4,8 @@
 
 An attempt at building something open source, cross-platform and hacky.
 
+[![Build and Deploy](https://github.com/andrewiankidd/project_armoire/actions/workflows/publish.yml/badge.svg?branch=master)](https://github.com/andrewiankidd/project_armoire/actions/workflows/publish.yml)
+
 ### Links!
 
 [![Website Link](https://img.shields.io/badge/%f0%9f%8c%90%20Website-cadetblue.svg)](https://andrewiankidd.github.io/project_armoire/)
