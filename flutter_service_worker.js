@@ -25,7 +25,7 @@ const RESOURCES = {
 "assets/assets/images/hero1.png": "08730d084495a7ccc2c7c283c3822d25",
 "assets/NOTICES": "aedc8d723218fa7351d42e7efdd6900a",
 "assets/FontManifest.json": "d751713988987e9331980363e24189ce",
-"game/index.html": "7617bdfe98fade6f57d21bfa36408575",
+"game/index.html": "4162530f897eb91421585c3e112c8769",
 "/": "2910f35308707a8fcd7db2ec3115c827",
 "favicon.png": "5dcef449791fa27946b3d35ad8803796",
 "main.dart.js": "db6cdf3d2914efc7655a9a3d9afb2101",
