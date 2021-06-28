@@ -9,29 +9,73 @@ on:
     branches:
       - master
 jobs:
-  build-and-deploy:
+  prepare_release:
+    steps:
+      - name: release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          draft: false
+          prerelease: false
+          release_name: ${{ github.GITHUB_SHA }}
+          tag_name: ${{ github.ref }}
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  build_web:
+    name: Build Web Client
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      - name: Java Setup (?)
-        uses: actions/setup-java@v1
-        with:
-          java-version: '12.x'
           
-      - uses: subosito/flutter-action@v1
+      - name: Install Flutter
+        uses: subosito/flutter-action@v1
         with:
           channel: 'dev'
 
-      - name: Build 🔧
-        run: |
-          flutter clean
-          flutter pub get
-          flutter build web
+      - name: Get Flutter Packages
+        run: flutter pub get
+      
+      - name: Build Flutter Web
+        run: flutter build web
           
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
           branch: gh-pages # The branch the action should deploy to.
           folder: build/web # The folder the action should deploy.
+          
+  build_apk:
+    name: Build Android Client
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Java Setup (?)
+        uses: actions/setup-java@v1
+        with:
+          java-version: "12.x"
+    
+      - name: Install Flutter
+        uses: subosito/flutter-action@v1
+        with:
+          channel: 'dev'
+          
+      - name: Get Flutter Packages
+        run: flutter pub get
+      
+      - name: Build Flutter APK
+        run: flutter build apk
+      
+      - name: upload APK
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/app/outputs/flutter-apk/app-release.apk
+          asset_name: android-release.apk
+          asset_content_type: application/zip
