@@ -25,74 +25,96 @@
 
   <title>project_armoire</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+	:root {
+		--color-white: #fafafa;
+		--color-grey: #151515;
+		--color-purple: #301B3F;
+		--color-navy: #3C415C;
+		--color-slate: #B4A5A5;
+	}
+	html, body {
+		margin: 0px;
+		background: var(--color-slate);
+		text-align: center;
+	}
+	header {
+		min-height: 50px;
+	}
+	header img {
+		height: 150px;
+		width: 150px;
+		margin: 20px auto;
+	}
+	content {
+		width: 80%;
+		margin: 20px auto;
+		display: block;
+		min-height: 300px;
+		background: var(--color-navy);
+		color: var(--color-white);
+		padding: 5px;
+		border: 1px solid var(--color-purple);
+		border-radius: 5px;
+		text-align: center;
+	}
+	content p {
+		
+	}
+	div.afterContent {
+		
+	}
+	footer {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		height: 40px;
+		padding: 0 5px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: deeppink;
+	}
+  </style>
 </head>
 <body>
-  <!-- This script installs service_worker.js to provide PWA functionality to
-       application. For more information, see:
-       https://developers.google.com/web/fundamentals/primers/service-workers -->
+  <header>
+	<img src="/icons/Icon-512.png" />
+  </header>
+  <content>
+	
+  </content>
+  <div class="afterContent">
+  </div>
+  <footer>
+	made w/ ❤
+  </footer>
   <script>
-    var serviceWorkerVersion = '3021124755';
-    var scriptLoaded = false;
-    function loadMainDartJs() {
-      if (scriptLoaded) {
-        return;
-      }
-      scriptLoaded = true;
-      var scriptTag = document.createElement('script');
-      scriptTag.src = 'main.dart.js';
-      scriptTag.type = 'application/javascript';
-      document.body.append(scriptTag);
-    }
+	  
+	// https://www.bigomega.dev/markdown-parser
+	function parseMarkdown(markdownText) {
+		const htmlText = markdownText
+			.replace(/^### (.*$)/gim, '<h3>$1</h3>')
+			.replace(/^## (.*$)/gim, '<h2>$1</h2>')
+			.replace(/^# (.*$)/gim, '<h1>$1</h1>')
+			.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>')
+			.replace(/\*\*(.*)\*\*/gim, '<b>$1</b>')
+			.replace(/\*(.*)\*/gim, '<i>$1</i>')
+			.replace(/!\[(.*?)\]\((.*?)\)/gim, "<img alt='$1' src='$2' />")
+			.replace(/\[(.*?)\]\((.*?)\)/gim, "<a href='$2'>$1</a>")
+			.replace(/\n$/gim, '<br />')
 
-    if ('serviceWorker' in navigator) {
-      // Service workers are supported. Use them.
-      window.addEventListener('load', function () {
-        // Wait for registration to finish before dropping the <script> tag.
-        // Otherwise, the browser will load the script multiple times,
-        // potentially different versions.
-        var serviceWorkerUrl = 'flutter_service_worker.js?v=' + serviceWorkerVersion;
-        navigator.serviceWorker.register(serviceWorkerUrl)
-          .then((reg) => {
-            function waitForActivation(serviceWorker) {
-              serviceWorker.addEventListener('statechange', () => {
-                if (serviceWorker.state == 'activated') {
-                  console.log('Installed new service worker.');
-                  loadMainDartJs();
-                }
-              });
-            }
-            if (!reg.active && (reg.installing || reg.waiting)) {
-              // No active web worker and we have installed or are installing
-              // one for the first time. Simply wait for it to activate.
-              waitForActivation(reg.installing ?? reg.waiting);
-            } else if (!reg.active.scriptURL.endsWith(serviceWorkerVersion)) {
-              // When the app updates the serviceWorkerVersion changes, so we
-              // need to ask the service worker to update.
-              console.log('New service worker available.');
-              reg.update();
-              waitForActivation(reg.installing);
-            } else {
-              // Existing service worker is still good.
-              console.log('Loading app from service worker.');
-              loadMainDartJs();
-            }
-          });
+		return htmlText.trim()
+	}
 
-        // If service worker doesn't succeed in a reasonable amount of time,
-        // fallback to plaint <script> tag.
-        setTimeout(() => {
-          if (!scriptLoaded) {
-            console.warn(
-              'Failed to load app from service worker. Falling back to plain <script> tag.',
-            );
-            loadMainDartJs();
-          }
-        }, 4000);
-      });
-    } else {
-      // Service workers not supported. Just drop the <script> tag.
-      loadMainDartJs();
-    }
+	const readmeUrl = 'https://raw.githubusercontent.com/andrewiankidd/project_armoire/master/README.md';
+
+	fetch(readmeUrl)
+   .then( response => { return response.text(); } )
+   .then( markdown => { return parseMarkdown(markdown);  } )
+   .then( html => { document.querySelector("content").innerHTML = html; } )
+
   </script>
 </body>
 </html>
