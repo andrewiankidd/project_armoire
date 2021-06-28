@@ -95,3 +95,38 @@ jobs:
           asset_path: ./build/app/outputs/flutter-apk/app-release.apk
           asset_name: android-release.apk
           asset_content_type: application/zip
+          
+  build_win:
+    name: Build Android Client
+    runs-on: windows-latest
+    needs: prepare_release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+    
+      - name: Install Flutter
+        uses: subosito/flutter-action@v1
+        with:
+          channel: 'dev'
+          
+      - name: Get Flutter Packages
+        run: flutter pub get
+      
+      - name: Build Flutter Windows target
+        run: flutter build windows
+      
+      - name: Archive Release
+        uses: thedoctor0/zip-release@master
+        with:
+          path: .\build\windows\runner\Release
+          filename: .\build\windows\runner\Windows.zip
+      
+      - name: upload Windows Executable
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ needs.prepare_release.outputs.upload_url }}
+          asset_path: .\build\windows\runner\Windows.zip
+          asset_name: Windows.zip
+          asset_content_type: application/zip
