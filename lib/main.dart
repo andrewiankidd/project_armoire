@@ -4,16 +4,28 @@ import 'package:bonfire/bonfire.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_armoire/maps/mainmap.dart';
+import 'package:pubnub/pubnub.dart';
+
+import 'net/net_data.dart';
+import 'config/config.dart';
+
 
 double tileSize = 32.0;
+PubNub pubnub;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (!kIsWeb) {
     await Flame.util.setLandscape(); //TODO Comment when running for web
     await Flame.util.fullScreen(); //TODO Comment when running for web
   }
+
+  NetData().init();
+  Config().init();
   runApp(MyApp());
 }
+
+
 
 enum ShowInEnum {
   left,
@@ -23,6 +35,7 @@ enum ShowInEnum {
 }
 
 class MyApp extends StatelessWidget {
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

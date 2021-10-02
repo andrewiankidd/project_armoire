@@ -2,13 +2,17 @@ import 'package:bonfire/bonfire.dart';
 import 'package:bonfire/util/collision/object_collision.dart';
 import 'package:flutter/material.dart';
 import 'package:project_armoire/main.dart';
+import 'package:project_armoire/net/player_data.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
   final Position initPosition;
   static final sizePlayer = tileSize * 1.5;
+  final int playerId = 1;
+  double baseSpeed = sizePlayer * 2;
+
   Paint _paintFocus = Paint()..blendMode = BlendMode.clear;
   bool isWater = false;
-  double baseSpeed = sizePlayer * 2;
+
 
   GamePlayer(this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
       : super(
@@ -56,7 +60,18 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     }
     super.joystickChangeDirectional(event);
     isWater = tileIsWater();
+
+    var data = PlayerMoveData(
+      playerId: playerId.toString(),
+      direction: event.directional,
+      position: Offset(
+        (position.left / tileSize),
+        (position.top / tileSize),
+      ),
+    ).toJson().toString();
+    PlayerNetData().broadcastUpdate('playermove', 'PlayerMoveData', data);
   }
+
 
   @override
   void joystickAction(JoystickActionEvent event) {
