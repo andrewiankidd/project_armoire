@@ -4,17 +4,17 @@ import 'package:bonfire/util/collision/object_collision.dart';
 import 'package:project_armoire/main.dart';
 import 'dart:ui';
 
-class GamePlayer extends SimpleEnemy with ObjectCollision {
+class RemotePlayer extends SimpleEnemy with ObjectCollision {
+  final int playerId;
   final Position initPosition;
   static final sizePlayer = tileSize * 1.5;
-  final int playerId;
   double baseSpeed = sizePlayer * 2;
 
   Paint _paintFocus = Paint()
     ..blendMode = BlendMode.clear;
   bool isWater = false;
 
-  GamePlayer(int playerId, this.initPosition, SpriteSheet spriteSheet,
+  RemotePlayer(this.playerId, this.initPosition, SpriteSheet spriteSheet,
       {Direction initDirection = Direction.right})
       : super(
     animation: SimpleDirectionAnimation(

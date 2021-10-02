@@ -7,6 +7,8 @@ import 'package:project_armoire/config/config.dart';
 class NetData {
 
   void init() async {
+    developer.log('pubnub init', name: 'project_armoire.NetData');
+
     // Create PubNub instance with default keyset.
     pubnub = PubNub(
         defaultKeyset: Keyset(
@@ -16,9 +18,11 @@ class NetData {
         )
     );
 
+    if (pubnub == null) {
+      developer.log('failed to init pubnub!', name: 'project_armoire.NetData');
+    }
     // Subscribe to a channel
     Subscription subscription = pubnub.subscribe(channels: {'playermove'});
-    developer.log('pubnub init', name: 'project_armoire.NetData');
 
     subscription.messages.take(1).listen((message) {
       developer.log('MESSAGE: ${developer.inspect(message.content)}', name: 'project_armoire.NetData');

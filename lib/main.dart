@@ -19,9 +19,8 @@ void main() async {
     await Flame.util.setLandscape(); //TODO Comment when running for web
     await Flame.util.fullScreen(); //TODO Comment when running for web
   }
-
+  await Config().init();
   NetData().init();
-  Config().init();
   runApp(MyApp());
 }
 

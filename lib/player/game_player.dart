@@ -5,16 +5,16 @@ import 'package:project_armoire/main.dart';
 import 'package:project_armoire/net/player_data.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
+  final int playerId;
   final Position initPosition;
   static final sizePlayer = tileSize * 1.5;
-  final int playerId = 1;
   double baseSpeed = sizePlayer * 2;
 
-  Paint _paintFocus = Paint()..blendMode = BlendMode.clear;
+  Paint _paintFocus = Paint()
+    ..blendMode = BlendMode.clear;
   bool isWater = false;
 
-
-  GamePlayer(this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
+  GamePlayer(this.playerId, this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
       : super(
           animation:SimpleDirectionAnimation(
               idleTop: spriteSheet.createAnimation(0, stepTime: 0.1, loop: true, from: 0, to: 1),
