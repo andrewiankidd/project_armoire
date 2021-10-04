@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  platform_device_id_windows
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

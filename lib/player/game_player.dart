@@ -2,10 +2,10 @@ import 'package:bonfire/bonfire.dart';
 import 'package:bonfire/util/collision/object_collision.dart';
 import 'package:flutter/material.dart';
 import 'package:project_armoire/main.dart';
-import 'package:project_armoire/net/player_data.dart';
+import 'package:project_armoire/net/net_player.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
-  final int playerId;
+  final String playerId;
   final Position initPosition;
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;
@@ -69,7 +69,7 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
         (position.top / tileSize),
       ),
     ).toJson().toString();
-    PlayerNetData().broadcastUpdate('playermove', 'PlayerMoveData', data);
+    NetPLayer().broadcastUpdate('playermove', 'PlayerMoveData', data);
   }
 
 

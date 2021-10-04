@@ -3,10 +3,10 @@ import 'dart:math';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:project_armoire/maps/mainmap.dart';
+import 'package:project_armoire/menus/main_menu.dart';
 import 'package:pubnub/pubnub.dart';
 
-import 'net/net_data.dart';
+import 'net/net.dart';
 import 'config/config.dart';
 
 
@@ -20,7 +20,7 @@ void main() async {
     await Flame.util.fullScreen(); //TODO Comment when running for web
   }
   await Config().init();
-  NetData().init();
+  await Net().init();
   runApp(MyApp());
 }
 
@@ -46,7 +46,7 @@ class MyApp extends StatelessWidget {
       home: LayoutBuilder(builder: (context, constraints) {
         tileSize = max(constraints.maxHeight, constraints.maxWidth) / 30;
         print(tileSize);
-        return MainMap();
+        return MainMenu();
       }),
     );
   }

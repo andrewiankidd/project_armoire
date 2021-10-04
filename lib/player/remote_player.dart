@@ -5,7 +5,7 @@ import 'package:project_armoire/main.dart';
 import 'dart:ui';
 
 class RemotePlayer extends SimpleEnemy with ObjectCollision {
-  final int playerId;
+  final String playerId;
   final Position initPosition;
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;

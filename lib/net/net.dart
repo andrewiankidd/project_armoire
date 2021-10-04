@@ -3,8 +3,11 @@ import 'package:pubnub/pubnub.dart';
 import 'package:project_armoire/main.dart';
 import 'package:project_armoire/config/config.dart';
 
+import 'net_player.dart';
 
-class NetData {
+class Net {
+
+  List<PlayerData> activePlayers;
 
   void init() async {
     developer.log('pubnub init', name: 'project_armoire.NetData');
@@ -14,7 +17,7 @@ class NetData {
         defaultKeyset: Keyset(
             subscribeKey: Config().get('PUBSUB_SUBSCRIBEKEY'),
             publishKey: Config().get('PUBSUB_PUBLISHKEY'),
-            uuid: UUID('demo')
+            uuid: UUID(Config().get('PUBSUB_UUID'))
         )
     );
 
@@ -25,11 +28,16 @@ class NetData {
     Subscription subscription = pubnub.subscribe(channels: {'playermove'});
 
     subscription.messages.take(1).listen((message) {
-      developer.log('MESSAGE: ${developer.inspect(message.content)}', name: 'project_armoire.NetData');
+      handleMessage(message);
     });
   }
 
-  Future<PublishResult> publish(String channel, dynamic message,
+  void handleMessage(Envelope message) {
+    developer.log('handleMessage: ${developer.inspect(message.content)}', name: 'project_armoire.NetData');
+
+  }
+
+  Future<PublishResult> publishMessage(String channel, dynamic message,
       {Keyset keyset,
         String using,
         dynamic meta,

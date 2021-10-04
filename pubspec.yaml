@@ -26,6 +26,10 @@ dependencies:
   bonfire: ^0.9.0+1
   pubnub: ^3.2.0
   flutter_dotenv: ^5.0.2
+  platform_device_id: ^0.2.1
+  platform_device_id_macos: ^1.0.0
+  platform_device_id_linux: ^1.0.0
+  platform_device_id_windows: ^1.0.0
 
 dev_dependencies:
   flutter_test:
@@ -40,7 +44,7 @@ flutter:
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
-  uses-material-design: false
+  uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
   assets:
@@ -48,4 +52,5 @@ flutter:
     - assets/images/maps/biome1/
     - assets/images/maps/biome2/
     - assets/images/buttons/
+    - assets/images/icons/
     - assets/images/

@@ -3,6 +3,7 @@ import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:project_armoire/config/config.dart';
 import 'package:project_armoire/main.dart';
 import 'package:project_armoire/player/game_player.dart';
 import 'package:project_armoire/player/sprite_sheet_hero.dart';
@@ -77,7 +78,7 @@ class MainMap extends StatelessWidget {
         ],
       ),
       player: GamePlayer(
-        0,
+        Config.deviceId(),
         _getInitPosition(),
         SpriteSheetHero.current,
         initDirection: _getDirection(),
