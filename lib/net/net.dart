@@ -5,12 +5,28 @@ import 'package:project_armoire/config/config.dart';
 
 import 'net_player.dart';
 
+class NetMessage {
+  String messageType;
+  var data;
+
+  NetMessage(this.messageType, this.data);
+  NetMessage.fromJson(Map<String, dynamic> json)
+      : messageType =  json['messageType'],
+        data = json['data'];
+
+  Map<String, dynamic> toJson() =>
+      {
+        'messageType': messageType,
+        'data': data
+      };
+}
+
 class Net {
 
   List<PlayerData> activePlayers;
 
   void init() async {
-    developer.log('pubnub init', name: 'project_armoire.NetData');
+    developer.log('pubnub init', name: 'project_armoire.Net');
 
     // Create PubNub instance with default keyset.
     pubnub = PubNub(
@@ -22,19 +38,25 @@ class Net {
     );
 
     if (pubnub == null) {
-      developer.log('failed to init pubnub!', name: 'project_armoire.NetData');
+      developer.log('failed to init pubnub!', name: 'project_armoire.Net');
     }
     // Subscribe to a channel
-    Subscription subscription = pubnub.subscribe(channels: {'playermove'});
-
+    Subscription subscription = pubnub.subscribe(channels: {'player', 'messages'});
     subscription.messages.take(1).listen((message) {
-      handleMessage(message);
+      this.handleMessage(message);
     });
   }
 
-  void handleMessage(Envelope message) {
-    developer.log('handleMessage: ${developer.inspect(message.content)}', name: 'project_armoire.NetData');
-
+  void handleMessage(Envelope envelope) {
+    developer.log('handleMessage: ${developer.inspect(envelope.content)}', name: 'project_armoire.Net');
+    NetMessage netMessage = NetMessage.fromJson(envelope.content);
+    switch(envelope.channel) {
+      case "player":
+          NetPlayer().handleMessage(netMessage);
+        break;
+      default:
+        throw "unknown message type ${envelope.channel}";
+    }
   }
 
   Future<PublishResult> publishMessage(String channel, dynamic message,
@@ -46,5 +68,11 @@ class Net {
       }
     ) async {
     return pubnub.publish(channel, message, keyset: keyset, using: using, storeMessage: storeMessage, ttl: ttl);
+  }
+
+  Future<void> broadcastUpdate(String channel, String messageType, var data) async {
+    // Channel abstraction for easier usage
+    PublishResult publishResult = await this.publishMessage(channel, NetMessage(messageType, data.toJson().toString()));
+    //developer.log('broadcastUpdate(${developer.inspect(publishResult)})', name: 'project_armoire.Net');
   }
 }

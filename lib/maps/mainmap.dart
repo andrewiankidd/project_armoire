@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:project_armoire/config/config.dart';
 import 'package:project_armoire/main.dart';
+import 'package:project_armoire/net/net_player.dart';
 import 'package:project_armoire/player/game_player.dart';
 import 'package:project_armoire/player/sprite_sheet_hero.dart';
 import 'package:project_armoire/util/exit_map_sensor.dart';
@@ -78,7 +79,7 @@ class MainMap extends StatelessWidget {
         ],
       ),
       player: GamePlayer(
-        Config.deviceId(),
+        NetPlayer.localPlayerData,
         _getInitPosition(),
         SpriteSheetHero.current,
         initDirection: _getDirection(),

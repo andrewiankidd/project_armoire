@@ -66,10 +66,11 @@ class MainMenuState extends State<MainMenu> {
                           setState(() {
                             if (_formKey.currentState.validate()) {
 
-                                NetPLayer().playerJoin(PlayerData(
+                                NetPlayer.localPlayerData = PlayerData(
                                   playerId: Config.deviceId(),
                                   playerUsername: _playerUsernameController.value.text,
-                                ));
+                                );
+                                NetPlayer().playerJoin(NetPlayer.localPlayerData);
 
                               context.goTo(MainMap());
                             }

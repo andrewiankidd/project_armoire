@@ -5,16 +5,19 @@ import 'package:project_armoire/main.dart';
 import 'package:project_armoire/net/net_player.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
-  final String playerId;
+  final PlayerData playerData;
   final Position initPosition;
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;
+
+  TextSpan playerUsernameLabel;
+  TextPainter textPainter;
 
   Paint _paintFocus = Paint()
     ..blendMode = BlendMode.clear;
   bool isWater = false;
 
-  GamePlayer(this.playerId, this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
+  GamePlayer(this.playerData, this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
       : super(
           animation:SimpleDirectionAnimation(
               idleTop: spriteSheet.createAnimation(0, stepTime: 0.1, loop: true, from: 0, to: 1),
@@ -39,8 +42,15 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
           initDirection: initDirection,
           life: 100,
           speed: sizePlayer * 2,
+
       ) {
-    setupCollision(
+
+    // setup label sizes
+    this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: this.playerData.playerUsername);
+    this.textPainter = new TextPainter(text: this.playerUsernameLabel, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+
+    // setup collision (redundant)
+    this.setupCollision(
       CollisionConfig(
         collisions: [
           CollisionArea(
@@ -61,15 +71,16 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     super.joystickChangeDirectional(event);
     isWater = tileIsWater();
 
+    // network broadcast movement data
     var data = PlayerMoveData(
-      playerId: playerId.toString(),
+      playerId: playerData.playerId.toString(),
       direction: event.directional,
       position: Offset(
         (position.left / tileSize),
         (position.top / tileSize),
       ),
-    ).toJson().toString();
-    NetPLayer().broadcastUpdate('playermove', 'PlayerMoveData', data);
+    );
+    NetPlayer().playerMoveData(data);
   }
 
 
@@ -92,8 +103,14 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     super.joystickAction(event);
   }
 
+  void renderUsername(Canvas canvas) {
+    this.textPainter.layout();
+    this.textPainter.paint(canvas, new Offset(this.position.left, this.position.top - 20));
+  }
+
   @override
   void render(Canvas canvas) {
+    this.renderUsername(canvas);
     if (isWater) {
       canvas.saveLayer(position, Paint());
     }
