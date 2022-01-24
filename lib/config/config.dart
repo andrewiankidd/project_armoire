@@ -5,11 +5,11 @@ import 'package:platform_device_id/platform_device_id.dart';
 
 class Config {
 
-  String deviceId;
+  static String deviceId;
 
   Future init() async {
     developer.log('init', name: 'project_armoire.Config');
-    this.deviceId = await PlatformDeviceId.getDeviceId;
+    Config.deviceId = (await PlatformDeviceId.getDeviceId).trim();
     return dotenv.load(fileName: ".env");
   }
 

@@ -79,7 +79,6 @@ class MainMap extends StatelessWidget {
         ],
       ),
       player: GamePlayer(
-        NetPlayer.localPlayerData,
         _getInitPosition(),
         SpriteSheetHero.current,
         initDirection: _getDirection(),

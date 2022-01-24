@@ -27,8 +27,6 @@ class NetMessage {
 
 class Net {
 
-  List<PlayerData> activePlayers;
-
   void init() async {
     developer.log('pubnub init', name: 'project_armoire.Net');
 

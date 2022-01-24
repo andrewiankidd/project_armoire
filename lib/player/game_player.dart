@@ -5,7 +5,8 @@ import 'package:project_armoire/main.dart';
 import 'package:project_armoire/net/net_player.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
-  final PlayerData playerData;
+  static PlayerData playerData;
+
   final Position initPosition;
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;
@@ -17,7 +18,7 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     ..blendMode = BlendMode.clear;
   bool isWater = false;
 
-  GamePlayer(this.playerData, this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
+  GamePlayer(this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
       : super(
           animation:SimpleDirectionAnimation(
               idleTop: spriteSheet.createAnimation(0, stepTime: 0.1, loop: true, from: 0, to: 1),
@@ -46,7 +47,7 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
       ) {
 
     // setup label sizes
-    this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: this.playerData.playerUsername);
+    this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: GamePlayer.playerData.playerUsername);
     this.textPainter = new TextPainter(text: this.playerUsernameLabel, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
 
     // setup collision (redundant)
@@ -73,7 +74,7 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
 
     // network broadcast movement data
     var data = PlayerMoveData(
-      playerId: playerData.playerId.toString(),
+      playerId: GamePlayer.playerData.playerId,
       direction: event.directional,
       position: Offset(
         (position.left / tileSize),

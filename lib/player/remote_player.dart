@@ -4,8 +4,11 @@ import 'package:bonfire/util/collision/object_collision.dart';
 import 'package:project_armoire/main.dart';
 import 'dart:ui';
 
+import 'package:project_armoire/net/net_player.dart';
+import 'package:project_armoire/player/sprite_sheet_hero.dart';
+
 class RemotePlayer extends SimpleEnemy with ObjectCollision {
-  final String playerId;
+  final PlayerData playerData;
   final Position initPosition;
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;
@@ -14,7 +17,7 @@ class RemotePlayer extends SimpleEnemy with ObjectCollision {
     ..blendMode = BlendMode.clear;
   bool isWater = false;
 
-  RemotePlayer(this.playerId, this.initPosition, SpriteSheet spriteSheet,
+  RemotePlayer(this.playerData, this.initPosition, SpriteSheet spriteSheet,
       {Direction initDirection = Direction.right})
       : super(
     animation: SimpleDirectionAnimation(
@@ -51,6 +54,16 @@ class RemotePlayer extends SimpleEnemy with ObjectCollision {
   ) {
 
     //setupServerPlayerControl(socketManager, id);
+  }
+
+  void addRemotePlayer(PlayerData playerData) {
+
+    //create remoteplayer
+    RemotePlayer remotePlayer = RemotePlayer(playerData, Position(1,1),  SpriteSheetHero.current)
+
+    //addGameComponent
+    //var
+
   }
 
 }

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_armoire/config/config.dart';
 import 'package:project_armoire/maps/mainmap.dart';
+import 'package:project_armoire/player/game_player.dart';
 import 'package:project_armoire/util/extensions.dart';
 import 'package:project_armoire/net/net_player.dart';
 
@@ -69,11 +70,11 @@ class MainMenuState extends State<MainMenu> {
                           setState(() {
                             if (_formKey.currentState.validate()) {
 
-                                NetPlayer.localPlayerData = PlayerData(
-                                  playerId: Config().deviceId,
+                                GamePlayer.playerData = PlayerData(
+                                  playerId: Config.deviceId,
                                   playerUsername: _playerUsernameController.value.text,
                                 );
-                                NetPlayer().playerJoin(NetPlayer.localPlayerData);
+                                NetPlayer().playerJoin(GamePlayer.playerData);
 
                               context.goTo(MainMap());
                             }
