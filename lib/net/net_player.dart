@@ -71,16 +71,24 @@ class PlayerMoveData {
     JoystickMoveDirectional direction;
     Offset position;
 
-    PlayerMoveData({this.playerId, this.direction, this.position});
+    PlayerMoveData({this.playerId, this.direction, this.position}) {
+        this.playerId = playerId;
+        this.direction = direction;
+        this.position = position;
+    }
+
     PlayerMoveData.fromJson(Map<String, dynamic> json)
         : playerId =  json['playerId'],
-        direction = json['direction'],
-        position = json['position'];
+        direction = JoystickMoveDirectional.values[json['direction']],
+        position = Offset(json['position']['dx'],json['position']['dy']);
 
     Map<String, dynamic> toJson() =>
     {
         'playerId': playerId,
-        'direction': direction,
-        'position': position,
+        'direction': direction.index,
+        'position': {
+            'dx': position.dx,
+            'dy': position.dy,
+        }
     };
 }

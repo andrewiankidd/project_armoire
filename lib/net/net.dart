@@ -46,7 +46,7 @@ class Net {
     }
     // Subscribe to a channel
     Subscription subscription = pubnub.subscribe(channels: {'player', 'messages'});
-    subscription.messages.take(1).listen((message) {
+    subscription.messages.listen((message) {
       this.handleMessage(message);
     });
   }
@@ -77,6 +77,6 @@ class Net {
   Future<void> broadcastUpdate(String channel, String messageType, var data) async {
     // Channel abstraction for easier usage
     PublishResult publishResult = await this.publishMessage(channel, NetMessage(messageType, data));
-    //developer.log('broadcastUpdate(${developer.inspect(publishResult)})', name: 'project_armoire.Net');
+    developer.log('broadcastUpdate(${developer.inspect(publishResult)})', name: 'project_armoire.Net');
   }
 }

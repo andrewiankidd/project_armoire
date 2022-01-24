@@ -12,7 +12,6 @@ class MainMenu extends StatefulWidget {
   MainMenuState createState() {
     return new MainMenuState();
   }
-
 }
 
 class MainMenuState extends State<MainMenu> {
@@ -71,7 +70,7 @@ class MainMenuState extends State<MainMenu> {
                             if (_formKey.currentState.validate()) {
 
                                 NetPlayer.localPlayerData = PlayerData(
-                                  playerId: Config.deviceId(),
+                                  playerId: Config().deviceId,
                                   playerUsername: _playerUsernameController.value.text,
                                 );
                                 NetPlayer().playerJoin(NetPlayer.localPlayerData);
