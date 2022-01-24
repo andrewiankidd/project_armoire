@@ -16,10 +16,10 @@ class NetPlayer {
 
         switch(message.messageType) {
             case "playerJoinData":
-                NetPlayer().onPlayerJoin(message.data);
+                NetPlayer().onPlayerJoin(PlayerData.fromJson(message.data));
                 break;
             case "playerMoveData":
-                NetPlayer().onPlayerMove(message.data);
+                NetPlayer().onPlayerMove(PlayerMoveData.fromJson(message.data));
                 break;
             default:
                 throw "unknown message type ${message.messageType}";
@@ -42,7 +42,7 @@ class NetPlayer {
     }
 
     // what to do when player moves in a session
-    void onPlayerMove(PlayerData moveData) {
+    void onPlayerMove(PlayerMoveData moveData) {
         developer.log('onPlayerMove: ${developer.inspect(moveData)}', name: 'project_armoire.NetPlayer');
 
     }

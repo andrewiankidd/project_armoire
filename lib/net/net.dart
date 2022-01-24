@@ -11,7 +11,7 @@ class NetMessage {
 
   NetMessage(messageType, data){
     this.messageType = messageType;
-    this.data = data.toJson().toString();
+    this.data = data;
   }
 
   NetMessage.fromJson(Map<String, dynamic> json)
@@ -53,7 +53,7 @@ class Net {
 
   void handleMessage(Envelope envelope) {
     developer.log('handleMessage: ${developer.inspect(envelope.content)}', name: 'project_armoire.Net');
-    var netMessage = envelope.content;
+    NetMessage netMessage = NetMessage.fromJson(envelope.content);
     switch(envelope.channel) {
       case "player":
           NetPlayer().handleMessage(netMessage);
