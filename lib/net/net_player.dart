@@ -16,8 +16,6 @@ class NetPlayer {
 
         switch(message.messageType) {
             case "playerJoinData":
-                var decodedMessage = PlayerData().fromJson(message.content);
-
                 NetPlayer().onPlayerJoin(message.data);
                 break;
             case "playerMoveData":

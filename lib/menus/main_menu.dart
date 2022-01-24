@@ -1,4 +1,5 @@
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_armoire/config/config.dart';
 import 'package:project_armoire/maps/mainmap.dart';
@@ -55,6 +56,9 @@ class MainMenuState extends State<MainMenu> {
                         textAlign: TextAlign.center,
                         validator: (text) {
                           if (text == null || text.isEmpty || text.length < 5) {
+                            if (kDebugMode) {
+                              _playerUsernameController.text = UniqueKey().toString();
+                            }
                             return 'Username must be at least 5 characters!';
                           }
                           return null;

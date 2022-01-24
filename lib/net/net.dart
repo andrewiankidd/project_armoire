@@ -9,7 +9,11 @@ class NetMessage {
   String messageType;
   var data;
 
-  NetMessage(this.messageType, this.data);
+  NetMessage(messageType, data){
+    this.messageType = messageType;
+    this.data = data.toJson().toString();
+  }
+
   NetMessage.fromJson(Map<String, dynamic> json)
       : messageType =  json['messageType'],
         data = json['data'];
@@ -49,7 +53,7 @@ class Net {
 
   void handleMessage(Envelope envelope) {
     developer.log('handleMessage: ${developer.inspect(envelope.content)}', name: 'project_armoire.Net');
-    NetMessage netMessage = NetMessage.fromJson(envelope.content);
+    var netMessage = envelope.content;
     switch(envelope.channel) {
       case "player":
           NetPlayer().handleMessage(netMessage);
@@ -72,7 +76,7 @@ class Net {
 
   Future<void> broadcastUpdate(String channel, String messageType, var data) async {
     // Channel abstraction for easier usage
-    PublishResult publishResult = await this.publishMessage(channel, NetMessage(messageType, data.toJson().toString()));
+    PublishResult publishResult = await this.publishMessage(channel, NetMessage(messageType, data));
     //developer.log('broadcastUpdate(${developer.inspect(publishResult)})', name: 'project_armoire.Net');
   }
 }
