@@ -7,11 +7,13 @@ import '../menus/main_menu.dart';
 import '../player/sprite_sheet_hero.dart';
 import 'package:pubnub/pubnub.dart';
 
+import 'game/game.dart';
 import 'net/net.dart';
 import 'config/config.dart';
 
 double tileSize = 32.0;
 PubNub pubnub;
+final gameStateKey = new GlobalKey<GameState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

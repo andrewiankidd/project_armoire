@@ -1,8 +1,8 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../config/config.dart';
-import '../maps/game.dart';
+import '../main.dart';
+import '../game/game.dart';
 import '../player/game_player.dart';
 import '../util/extensions.dart';
 import '../net/net_player.dart';
@@ -71,12 +71,12 @@ class MainMenuState extends State<MainMenu> {
                             if (_formKey.currentState.validate()) {
 
                                 GamePlayer.playerData = PlayerData(
-                                  playerId: Config.deviceId,
+                                  playerId: kDebugMode ? "${Config.deviceId}-${_playerUsernameController.value.text}" : Config.deviceId,
                                   playerUsername: _playerUsernameController.value.text,
                                 );
                                 NetPlayer().playerJoin(GamePlayer.playerData);
 
-                              context.goTo(Game());
+                              context.goTo(Game(key: gameStateKey));
                             }
                           });
                         },

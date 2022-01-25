@@ -4,14 +4,13 @@ import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import '../config/config.dart';
+import 'package:project_armoire/net/net_player.dart';
 import '../main.dart';
-import '../net/net_player.dart';
 import '../player/game_player.dart';
+import '../player/remote_player.dart';
 import '../player/sprite_sheet_hero.dart';
 import '../util/exit_map_sensor.dart';
 import '../util/extensions.dart';
-
 
 class Game extends StatefulWidget {
   const Game({Key key, ShowInEnum showInEnum}) : super(key: key);
@@ -62,7 +61,6 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
            ),
           );
         });
-
       });
     });
 
@@ -71,6 +69,15 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
 
   void addComponent(GameComponent gameComponent) {
     this._controller.addGameComponent(gameComponent);
+  }
+
+  void removeComponent(GameComponent gameComponent) {
+    this._controller.remove(gameComponent);
+  }
+
+  void moveComponent(GameComponent gameComponent, PlayerMoveData playerMoveData) {
+    var remotePlayer = this._controller.livingEnemies.first as RemotePlayer;
+    remotePlayer.moveRemotePlayer(playerMoveData);
   }
 
   TiledWorldMap _initMap(BuildContext context) {

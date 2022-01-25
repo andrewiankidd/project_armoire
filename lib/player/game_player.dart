@@ -47,13 +47,13 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: GamePlayer.playerData.playerUsername);
     this.textPainter = new TextPainter(text: this.playerUsernameLabel, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
 
-    // setup collision (redundant)
+    // setup collision (redundant comment)
     this.setupCollision(
       CollisionConfig(
         collisions: [
           CollisionArea.rectangle(
-            size: Vector2(sizePlayer / 3, sizePlayer * 0.5),
-            align: Vector2(sizePlayer * 0.25, sizePlayer * 0.65),
+            size: Vector2(sizePlayer / 2, sizePlayer * 0.5),
+            align: Vector2(sizePlayer * 0.25, sizePlayer * 0.5),
           ),
         ],
       ),
@@ -72,9 +72,9 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     var data = PlayerMoveData(
       playerId: GamePlayer.playerData.playerId,
       direction: event.directional,
-      position: Offset(
-        (position.x / tileSize),
-        (position.y / tileSize),
+      position: Vector2(
+        position.x,
+        position.y
       ),
     );
     NetPlayer().playerMoveData(data);
