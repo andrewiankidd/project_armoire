@@ -1,6 +1,7 @@
 
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:platform_device_id/platform_device_id.dart';
 
@@ -12,7 +13,7 @@ class Config {
     developer.log('init', name: 'project_armoire.Config');
     Config.deviceId = (await PlatformDeviceId.getDeviceId).trim();
 
-    if (File(".env").existsSync()){
+    if (!kIsWeb && File(".env").existsSync()){
       return dotenv.load(fileName: ".env");
     }
   }
