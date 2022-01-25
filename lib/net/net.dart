@@ -33,9 +33,9 @@ class Net {
     // Create PubNub instance with default keyset.
     pubnub = PubNub(
         defaultKeyset: Keyset(
-            subscribeKey: Config().get('PUBSUB_SUBSCRIBEKEY'),
-            publishKey: Config().get('PUBSUB_PUBLISHKEY'),
-            uuid: UUID(Config().get('PUBSUB_UUID'))
+            subscribeKey: Config().get('PUBNUB_SUBSCRIBEKEY'),
+            publishKey: Config().get('PUBNUB_PUBLISHKEY'),
+            uuid: UUID(Config().get('PUBNUB_UUID'))
         )
     );
 
