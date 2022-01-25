@@ -150,6 +150,7 @@ jobs:
         run: |
           flutter config --enable-macos-desktop
           flutter build macos
+          ls -a -R .\build\macos\Build\
 
       - name: Upload MacOS App
         uses: actions/upload-release-asset@v1

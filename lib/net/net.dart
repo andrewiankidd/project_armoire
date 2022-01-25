@@ -31,11 +31,12 @@ class Net {
     developer.log('pubnub init', name: 'project_armoire.Net');
 
     // Create PubNub instance with default keyset.
+    // default to rate limited demo keys
     pubnub = PubNub(
         defaultKeyset: Keyset(
-            subscribeKey: Config().get('PUBNUB_SUBSCRIBEKEY'),
-            publishKey: Config().get('PUBNUB_PUBLISHKEY'),
-            uuid: UUID(Config().get('PUBNUB_UUID'))
+            subscribeKey: Config().get(configKey: 'PUBNUB_SUBSCRIBEKEY', defaultValue: 'sub-c-3990fb9c-7d41-11ec-add2-a260b15b99c5'),
+            publishKey: Config().get(configKey: 'PUBNUB_PUBLISHKEY', defaultValue: 'pub-c-fa8e2515-5698-49ff-bd0d-788d4a0cc04f'),
+            uuid: UUID(Config().get(configKey: 'PUBNUB_UUID', defaultValue: 'demo'))
         )
     );
 
