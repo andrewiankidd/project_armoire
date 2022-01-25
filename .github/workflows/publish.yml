@@ -150,7 +150,7 @@ jobs:
         run: |
           flutter config --enable-macos-desktop
           flutter build macos
-          ls -a -R ./build/macos/Build/
+          ls -a -R ./build/macos/Build//Products/Release
 
       - name: Upload MacOS App
         uses: actions/upload-release-asset@v1
@@ -158,6 +158,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.prepare_release.outputs.upload_url }}
-          asset_path: ./build/macos/Build/Products/Release/project_armoire.app
+          asset_path: ./build/macos/Build//Products/Release/project_armoire.app
           asset_name: project_armoire.app
           asset_content_type: application/zip
