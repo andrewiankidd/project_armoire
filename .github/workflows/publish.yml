@@ -152,12 +152,15 @@ jobs:
           flutter build macos
           ls -a -R ./build/macos/Build//Products/Release
 
+      - name: Zip MacOS release directory
+        run: 7z a build\macos\Release.zip ./build/macos/Build//Products/Release/project_armoire.app
+
       - name: Upload MacOS App
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.prepare_release.outputs.upload_url }}
-          asset_path: ./build/macos/Build//Products/Release/project_armoire.app
+          asset_path: ./build/macos/Release.zip
           asset_name: project_armoire.app
           asset_content_type: application/zip
