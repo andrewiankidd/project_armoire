@@ -1,20 +1,27 @@
 import 'package:bonfire/bonfire.dart';
 
 class SpriteSheetHero {
-  static SpriteSheet _create(String path) {
-    return SpriteSheet(
-      imageName: path,
-      textureWidth: 64,
-      textureHeight: 64,
-      columns: 9,
+  static Future<void> load() async {
+    current = cloaked = await _create('cloaked.png');
+    uncloaked = await _create('uncloaked.png');
+    //hero3 = await _create('hero3.png');
+    //hero4 = await _create('hero4.png');
+    //hero5 = await _create('hero5.png');
+  }
+
+  static Future<SpriteSheet> _create(String path) async {
+    final image = await Flame.images.load(path);
+    return SpriteSheet.fromColumnsAndRows(
+      image: image,
+      columns: 13,
       rows: 21,
     );
   }
 
-  static SpriteSheet current = SpriteSheetHero.cloaked;
-  static SpriteSheet get cloaked => _create('cloaked.png');
-  static SpriteSheet get uncloaked => _create('uncloaked.png');
-  static SpriteSheet get hero3 => _create('hero3.png');
-  static SpriteSheet get hero4 => _create('hero4.png');
-  static SpriteSheet get hero5 => _create('hero5.png');
+  static SpriteSheet current;
+  static SpriteSheet cloaked;
+  static SpriteSheet uncloaked;
+  static SpriteSheet hero3;
+  static SpriteSheet hero4;
+  static SpriteSheet hero5;
 }

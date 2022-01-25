@@ -2,9 +2,11 @@ import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../net/net_player.dart';
+class RemotePlayer extends SimpleEnemy with ObjectCollision {
+  static const REDUCTION_SPEED_DIAGONAL = 0.7;
+  JoystickMoveDirectional currentMove = JoystickMoveDirectional.IDLE;
 
-class GamePlayer extends SimplePlayer with ObjectCollision {
-  static PlayerData playerData;
+  final PlayerData playerData;
 
   final Vector2 initPosition;
   static final sizePlayer = tileSize * 1.5;
@@ -17,7 +19,8 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     ..blendMode = BlendMode.clear;
   bool isWater = false;
 
-  GamePlayer(this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
+  RemotePlayer(this.playerData, this.initPosition, SpriteSheet spriteSheet,
+      {Direction initDirection = Direction.right})
       : super(
           animation:SimpleDirectionAnimation(
               idleUp: spriteSheet.createAnimation(row: 0, stepTime: 0.1, loop: true, from: 0, to: 1).asFuture(),
@@ -41,10 +44,10 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
           initDirection: initDirection,
           life: 100,
           speed: sizePlayer * 2,
-      ) {
+        ) {
 
     // setup label sizes
-    this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: GamePlayer.playerData.playerUsername);
+    this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: this.playerData.playerUsername);
     this.textPainter = new TextPainter(text: this.playerUsernameLabel, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
 
     // setup collision (redundant comment)
@@ -52,57 +55,82 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
       CollisionConfig(
         collisions: [
           CollisionArea.rectangle(
-            size: Vector2(sizePlayer / 2, sizePlayer * 0.5),
-            align: Vector2(sizePlayer * 0.25, sizePlayer * 0.5),
+            size: Vector2(sizePlayer / 3, sizePlayer * 0.5),
+            align: Vector2(sizePlayer * 0.25, sizePlayer * 0.65),
           ),
         ],
       ),
     );
   }
 
-  @override
-  void joystickChangeDirectional(JoystickDirectionalEvent event) {
-    if (event.directional != JoystickMoveDirectional.IDLE) {
-      speed = (baseSpeed * (isWater ? 0.5 : 1)) * event.intensity;
-    }
-    super.joystickChangeDirectional(event);
-    isWater = tileIsWater();
+  void moveRemotePlayer(PlayerMoveData playerMoveData){
 
-    // network broadcast movement data
-    var data = PlayerMoveData(
-      playerId: GamePlayer.playerData.playerId,
-      direction: event.directional,
-      position: Vector2(
-        position.x,
-        position.y
-      ),
-    );
-    NetPlayer().playerMoveData(data);
+    // set intended direction
+    // game will pick it up in next tick of update method
+    this.currentMove = playerMoveData.direction;
+
+    // de-sync check
+    if (playerMoveData.position.distanceTo(position) > (tileSize * 0.5)) {
+      position = playerMoveData.position;
+    }
   }
 
-
-  @override
-  void joystickAction(JoystickActionEvent event) {
-    if (isDead) return;
-
-    String dir = (super.lastDirection.toString().split(".")[1].inCaps);
-
-    switch (event.id) {
-      case 1: {
-        this.attack(dir);
+  void _moveRemotePlayer(JoystickMoveDirectional direction) {
+    switch(direction) {
+      case JoystickMoveDirectional.MOVE_LEFT:
+        this.moveLeft(speed);
         break;
-      }
-      default: {
-
-      }
+      case JoystickMoveDirectional.MOVE_RIGHT:
+        this.moveRight(speed);
+        break;
+      case JoystickMoveDirectional.MOVE_UP_RIGHT:
+        double speedDiagonal = (speed * REDUCTION_SPEED_DIAGONAL);
+        moveUpRight(
+          speedDiagonal,
+          speedDiagonal,
+        );
+        break;
+      case JoystickMoveDirectional.MOVE_DOWN_RIGHT:
+        double speedDiagonal = (speed * REDUCTION_SPEED_DIAGONAL);
+        moveDownRight(
+          speedDiagonal,
+          speedDiagonal,
+        );
+        break;
+      case JoystickMoveDirectional.MOVE_DOWN_LEFT:
+        double speedDiagonal = (speed * REDUCTION_SPEED_DIAGONAL);
+        moveDownLeft(
+          speedDiagonal,
+          speedDiagonal,
+        );
+        break;
+      case JoystickMoveDirectional.MOVE_UP_LEFT:
+        double speedDiagonal = (speed * REDUCTION_SPEED_DIAGONAL);
+        moveUpLeft(
+          speedDiagonal,
+          speedDiagonal,
+        );
+        break;
+      case JoystickMoveDirectional.MOVE_UP:
+        this.moveUp(speed);
+        break;
+      case JoystickMoveDirectional.MOVE_DOWN:
+        this.moveDown(speed);
+        break;
+      case JoystickMoveDirectional.IDLE:
+        this.idle();
     }
-
-    super.joystickAction(event);
   }
 
   void renderUsername(Canvas canvas) {
     this.textPainter.layout();
     this.textPainter.paint(canvas, new Offset(this.position.x, this.position.y - 20));
+  }
+
+  @override
+  void update(double dt) {
+    _moveRemotePlayer(currentMove);
+    super.update(dt);
   }
 
   @override
@@ -120,27 +148,4 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
       canvas.restore();
     }
   }
-
-  bool tileIsWater() => tileTypeBelow() == 'water';
-
-  void attack(String direction) {
-    String animName = 'cast' + direction;
-    this.playOtherAnimation(animName, (){
-      // give damage
-    });
-  }
-
-  void playOtherAnimation(String animName, Function onFinish) {
-    var anim = super.animation.others[animName];
-    super.animation.playOnce(anim, onFinish: (){
-      anim.reset();
-      onFinish();
-    }, runToTheEnd: true);
-  }
-}
-
-extension CapExtension on String {
-  String get inCaps => this.length > 0 ?'${this[0].toUpperCase()}${this.substring(1)}':'';
-  String get allInCaps => this.toUpperCase();
-  String get capitalizeFirstofEach => this.replaceAll(RegExp(' +'), ' ').split(" ").map((str) => str.inCaps).join(" ");
 }
