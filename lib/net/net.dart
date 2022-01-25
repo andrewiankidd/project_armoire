@@ -1,7 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:pubnub/pubnub.dart';
-import 'package:project_armoire/main.dart';
-import 'package:project_armoire/config/config.dart';
+import '../main.dart';
+import '../config/config.dart';
 
 import 'net_player.dart';
 

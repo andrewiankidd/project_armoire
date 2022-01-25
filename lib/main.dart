@@ -3,28 +3,27 @@ import 'dart:math';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:project_armoire/menus/main_menu.dart';
+import '../menus/main_menu.dart';
+import '../player/sprite_sheet_hero.dart';
 import 'package:pubnub/pubnub.dart';
 
 import 'net/net.dart';
 import 'config/config.dart';
-
 
 double tileSize = 32.0;
 PubNub pubnub;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SpriteSheetHero.load();
   if (!kIsWeb) {
-    await Flame.util.setLandscape(); //TODO Comment when running for web
-    await Flame.util.fullScreen(); //TODO Comment when running for web
+    await Flame.device.setLandscape(); //TODO Comment when running for web
+    await Flame.device.fullScreen(); //TODO Comment when running for web
   }
   await Config().init();
   await Net().init();
   runApp(MyApp());
 }
-
-
 
 enum ShowInEnum {
   left,

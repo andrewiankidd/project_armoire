@@ -1,29 +1,47 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import 'package:project_armoire/config/config.dart';
-import 'package:project_armoire/main.dart';
-import 'package:project_armoire/net/net_player.dart';
-import 'package:project_armoire/player/game_player.dart';
-import 'package:project_armoire/player/sprite_sheet_hero.dart';
-import 'package:project_armoire/util/exit_map_sensor.dart';
-import 'package:project_armoire/util/extensions.dart';
+import '../config/config.dart';
+import '../main.dart';
+import '../net/net_player.dart';
+import '../player/game_player.dart';
+import '../player/sprite_sheet_hero.dart';
+import '../util/exit_map_sensor.dart';
+import '../util/extensions.dart';
 
-class MainMap extends StatelessWidget {
+
+class Game extends StatefulWidget {
+  const Game({Key key, ShowInEnum showInEnum}) : super(key: key);
+
+  @override
+  GameState createState({key, showInEnum}) => GameState();
+}
+
+class GameState extends State<Game> with WidgetsBindingObserver implements GameListener {
+  GameController _controller;
+
   final ShowInEnum showInEnum;
   static String mapLocation = 'biome1';
   static TiledWorldMap mapData;
 
-  const MainMap({Key key, this.showInEnum = ShowInEnum.left}) : super(key: key);
+  @override
+  void initState() {
+    WidgetsBinding.instance.addObserver(this);
+    _controller = GameController()..addListener(this);
+    super.initState();
+  }
+
+  GameState({Key key, this.showInEnum = ShowInEnum.left});
   @override
   Widget build(BuildContext context) {
     print('map init');
-    MainMap.mapData = this.initMap(context);
+    GameState.mapData = this._initMap(context);
 
     print('object loader init');
-    rootBundle.loadString('assets/images/' + MainMap.mapData.path).then((String result){
+    rootBundle.loadString('assets/images/' + GameState.mapData.path).then((String result){
       final decoded = json.decode(result);
       print('mapdata decoded successfully');
 
@@ -34,13 +52,12 @@ class MainMap extends StatelessWidget {
 
         print('objectGroup: ${objectGroup['name']}');
         objectGroup['objects'].forEach((object) {
-          MainMap.mapData.registerObject(
+          GameState.mapData.registerObject(
             object['name'],
-            (x, y, width, height) => ExitMapSensor(
+            (p) => ExitMapSensor(
               object['name'],
-              Position(x, y),
-              width,
-              height,
+              p.position,
+              p.size,
               (v) => _exitMap(v, context),
            ),
           );
@@ -49,28 +66,34 @@ class MainMap extends StatelessWidget {
       });
     });
 
-    return this.buildInterface(context);
+    return this._buildInterface(context);
   }
 
-  TiledWorldMap initMap(BuildContext context) {
+  void addComponent(GameComponent gameComponent) {
+    this._controller.addGameComponent(gameComponent);
+  }
+
+  TiledWorldMap _initMap(BuildContext context) {
     return TiledWorldMap(
-      'maps/${MainMap.mapLocation}/data.json',
+      'maps/${GameState.mapLocation}/data.json',
       forceTileSize: Size(tileSize, tileSize),
     );
   }
 
-  Widget buildInterface(BuildContext context) {
+  Widget _buildInterface(BuildContext context) {
     return BonfireTiledWidget(
       showCollisionArea: kDebugMode,
       showFPS: true,
       joystick: Joystick(
-        keyboardEnable: true,
+        keyboardConfig: KeyboardConfig(
+          enable: true,
+        ),
         directional: JoystickDirectional(),
         actions: [
           JoystickAction(
             actionId: 1, //(required) Action identifier, will be sent to 'void joystickAction(JoystickActionEvent event) {}' when pressed
-            sprite: Sprite('buttons/background.png'), // the action image
-            spritePressed: Sprite('buttons/atack_range.png'), // Optional image to be shown when the action is fired
+            sprite: Sprite.load('buttons/background.png'), // the action image
+            spritePressed: Sprite.load('buttons/atack_range.png'), // Optional image to be shown when the action is fired
             align: JoystickActionAlign.BOTTOM_RIGHT,
             color: Colors.blue,
             size: 50,
@@ -83,36 +106,42 @@ class MainMap extends StatelessWidget {
         SpriteSheetHero.current,
         initDirection: _getDirection(),
       ),
-      map: MainMap.mapData,
+      map: GameState.mapData,
       colorFilter: GameColorFilter(color: Color.fromRGBO(255, 112, 214, 0.66), blendMode: BlendMode.hue),
-      cameraMoveOnlyMapArea: true,
+      cameraConfig: CameraConfig(
+        moveOnlyMapArea: true,
+        sizeMovementWindow: Vector2(50,50),
+        zoom:  1.0,
+        angle: 45 * pi/180, // rotate view 45 degrees
+      ),
       progress: SizedBox.shrink(),
+      gameController: this._controller,
     );
   }
 
-  Position _getInitPosition() {
+  Vector2 _getInitPosition() {
     switch (showInEnum) {
       case ShowInEnum.left:
-        return Position(tileSize * 2, tileSize * 10);
+        return Vector2(tileSize * 2, tileSize * 10);
         break;
       case ShowInEnum.right:
-        return Position(tileSize * 27, tileSize * 12);
+        return Vector2(tileSize * 27, tileSize * 12);
         break;
       case ShowInEnum.top:
-        return Position.empty();
+        return Vector2.zero();
         break;
       case ShowInEnum.bottom:
-        return Position.empty();
+        return Vector2.zero();
         break;
       default:
-        return Position.empty();
+        return Vector2.zero();
     }
   }
 
   void _exitMap(String value, BuildContext context) {
     var mapName = value.substring(value.lastIndexOf(":") + 1, value.length);
-    MainMap.mapLocation = mapName;
-    context.goTo(MainMap(
+    GameState.mapLocation = mapName;
+    context.goTo(Game(
       showInEnum: ShowInEnum.left,
     ));
   }
@@ -134,5 +163,15 @@ class MainMap extends StatelessWidget {
       default:
         return Direction.right;
     }
+  }
+
+  @override
+  void changeCountLiveEnemies(int count) {
+    // TODO: implement changeCountLiveEnemies
+  }
+
+  @override
+  void updateGame() {
+    // TODO: implement updateGame
   }
 }

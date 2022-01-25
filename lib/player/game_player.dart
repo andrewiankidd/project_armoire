@@ -1,13 +1,12 @@
 import 'package:bonfire/bonfire.dart';
-import 'package:bonfire/util/collision/object_collision.dart';
 import 'package:flutter/material.dart';
-import 'package:project_armoire/main.dart';
-import 'package:project_armoire/net/net_player.dart';
+import '../main.dart';
+import '../net/net_player.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
   static PlayerData playerData;
 
-  final Position initPosition;
+  final Vector2 initPosition;
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;
 
@@ -21,29 +20,27 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
   GamePlayer(this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
       : super(
           animation:SimpleDirectionAnimation(
-              idleTop: spriteSheet.createAnimation(0, stepTime: 0.1, loop: true, from: 0, to: 1),
-              idleLeft: spriteSheet.createAnimation(1, stepTime: 0.1, loop: true, from: 0, to: 1),
-              idleBottom: spriteSheet.createAnimation(2, stepTime: 0.1, loop: true, from: 0, to: 1),
-              idleRight: spriteSheet.createAnimation(3, stepTime: 0.1, loop: true, from: 0, to: 1),
-              runTop: spriteSheet.createAnimation(8, stepTime: 0.1),
-              runLeft: spriteSheet.createAnimation(9, stepTime: 0.1),
-              runBottom: spriteSheet.createAnimation(10, stepTime: 0.1),
-              runRight: spriteSheet.createAnimation(11, stepTime: 0.1),
+              idleUp: spriteSheet.createAnimation(row: 0, stepTime: 0.1, loop: true, from: 0, to: 1).asFuture(),
+              idleLeft: spriteSheet.createAnimation(row: 1, stepTime: 0.1, loop: true, from: 0, to: 1).asFuture(),
+              idleDown: spriteSheet.createAnimation(row: 2, stepTime: 0.1, loop: true, from: 0, to: 1).asFuture(),
+              idleRight: spriteSheet.createAnimation(row: 3, stepTime: 0.1, loop: true, from: 0, to: 1).asFuture(),
+              runUp: spriteSheet.createAnimation(row: 8, stepTime: 0.1, loop: true, from: 0, to: 9).asFuture(),
+              runLeft: spriteSheet.createAnimation(row: 9, stepTime: 0.1, loop: true, from: 0, to: 9).asFuture(),
+              runDown: spriteSheet.createAnimation(row: 10, stepTime: 0.1, loop: true, from: 0, to: 9).asFuture(),
+              runRight: spriteSheet.createAnimation(row: 11, stepTime: 0.1, loop: true, from: 0, to: 9).asFuture(),
               others:
               {
-                "castTop": spriteSheet.createAnimation(12, stepTime: 0.1, from: 0, to: 5, loop: false),
-                "castLeft": spriteSheet.createAnimation(13, stepTime: 0.1, from: 0, to: 5, loop: false),
-                "castBottom": spriteSheet.createAnimation(14, stepTime: 0.1, from: 0, to: 5, loop: false),
-                "castRight": spriteSheet.createAnimation(15, stepTime: 0.1, from: 0, to: 5, loop: false),
+                "castTop": spriteSheet.createAnimation(row: 12, stepTime: 0.1, from: 0, to: 5, loop: false).asFuture(),
+                "castLeft": spriteSheet.createAnimation(row: 13, stepTime: 0.1, from: 0, to: 5, loop: false).asFuture(),
+                "castBottom": spriteSheet.createAnimation(row: 14, stepTime: 0.1, from: 0, to: 5, loop: false).asFuture(),
+                "castRight": spriteSheet.createAnimation(row: 15, stepTime: 0.1, from: 0, to: 5, loop: false).asFuture(),
               }
           ),
-          width: sizePlayer,
-          height: sizePlayer,
-          initPosition: initPosition,
+          size: Vector2(sizePlayer, sizePlayer),
+          position: initPosition,
           initDirection: initDirection,
           life: 100,
           speed: sizePlayer * 2,
-
       ) {
 
     // setup label sizes
@@ -54,10 +51,9 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     this.setupCollision(
       CollisionConfig(
         collisions: [
-          CollisionArea(
-            height: sizePlayer / 3,
-            width: sizePlayer * 0.5,
-            align: Offset(sizePlayer * 0.25, sizePlayer * 0.65),
+          CollisionArea.rectangle(
+            size: Vector2(sizePlayer / 3, sizePlayer * 0.5),
+            align: Vector2(sizePlayer * 0.25, sizePlayer * 0.65),
           ),
         ],
       ),
@@ -77,8 +73,8 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
       playerId: GamePlayer.playerData.playerId,
       direction: event.directional,
       position: Offset(
-        (position.left / tileSize),
-        (position.top / tileSize),
+        (position.x / tileSize),
+        (position.y / tileSize),
       ),
     );
     NetPlayer().playerMoveData(data);
@@ -106,24 +102,19 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
 
   void renderUsername(Canvas canvas) {
     this.textPainter.layout();
-    this.textPainter.paint(canvas, new Offset(this.position.left, this.position.top - 20));
+    this.textPainter.paint(canvas, new Offset(this.position.x, this.position.y - 20));
   }
 
   @override
   void render(Canvas canvas) {
     this.renderUsername(canvas);
     if (isWater) {
-      canvas.saveLayer(position, Paint());
+      canvas.saveLayer(position.toRect(), Paint());
     }
     super.render(canvas);
     if (isWater) {
       canvas.drawRect(
-        Rect.fromLTWH(
-          position.left,
-          position.top + height * 0.62,
-          position.width,
-          position.height * 0.38,
-        ),
+        position.toRect(),
         _paintFocus,
       );
       canvas.restore();

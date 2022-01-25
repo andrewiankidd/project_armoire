@@ -3,14 +3,18 @@ import 'dart:developer' as developer;
 import 'dart:ui';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:project_armoire/net/net.dart';
-import 'package:project_armoire/player/game_player.dart';
+import '../net/net.dart';
+import '../player/game_player.dart';
 import 'package:pubnub/pubnub.dart';
+
+import '../maps/game.dart';
+import '../player/remote_player.dart';
+import '../player/sprite_sheet_hero.dart';
 
 // networked player methods
 class NetPlayer {
 
-    List<PlayerData> activePlayers;
+    List<PlayerData> activePlayers = [];
 
     void handleMessage(NetMessage message) {
         developer.log('handleMessage: ${developer.inspect(message)}', name: 'project_armoire.NetPlayer');
@@ -43,15 +47,24 @@ class NetPlayer {
 
     void _removePlayer(PlayerData playerData) {
         // remove any matching playerIds to prevent duplication
-        List<PlayerData> matchingPlayers = this.activePlayers.where((player) => player.playerId == playerData.playerId);
+        List<PlayerData> matchingPlayers = this.activePlayers.where((player) => player.playerId == playerData.playerId).toList();
         if (matchingPlayers.length > 0) {
-            this.activePlayers = (List.from(Set.from(this.activePlayers).difference(Set.from(matchingPlayers ))));
+            this.activePlayers = (List.from(Set.from(this.activePlayers).difference(Set.from(matchingPlayers))));
         }
     }
 
     void _addPlayer(PlayerData playerData) {
         // dump em in
         this.activePlayers.add(playerData);
+
+        //create remoteplayer
+        RemotePlayer remotePlayer = RemotePlayer(playerData, Vector2(1,1), SpriteSheetHero.current);
+
+        //addGameComponent
+        //Game().addComponent(remotePlayer);
+        // Somewhere where inside class where `StartupPage` will be used
+        final startupPageKey = GlobalKey<GameState>();
+        startupPageKey.currentState.addComponent(remotePlayer);
     }
 
     // to move in a session

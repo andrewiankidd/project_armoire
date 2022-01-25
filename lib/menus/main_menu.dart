@@ -1,11 +1,11 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:project_armoire/config/config.dart';
-import 'package:project_armoire/maps/mainmap.dart';
-import 'package:project_armoire/player/game_player.dart';
-import 'package:project_armoire/util/extensions.dart';
-import 'package:project_armoire/net/net_player.dart';
+import '../config/config.dart';
+import '../maps/game.dart';
+import '../player/game_player.dart';
+import '../util/extensions.dart';
+import '../net/net_player.dart';
 
 class MainMenu extends StatefulWidget {
 
@@ -76,7 +76,7 @@ class MainMenuState extends State<MainMenu> {
                                 );
                                 NetPlayer().playerJoin(GamePlayer.playerData);
 
-                              context.goTo(MainMap());
+                              context.goTo(Game());
                             }
                           });
                         },
