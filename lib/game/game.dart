@@ -10,21 +10,28 @@ import '../player/game_player.dart';
 import '../player/remote_player.dart';
 import '../player/sprite_sheet_hero.dart';
 import '../util/exit_map_sensor.dart';
-import '../util/extensions.dart';
 
 class Game extends StatefulWidget {
-  const Game({Key key, ShowInEnum showInEnum}) : super(key: key);
+  final ShowInEnum showInEnum;
+  final String fromSensor;
+  final Vector2 cameraOffset;
+
+  const Game({Key key, this.showInEnum = ShowInEnum.left, this.fromSensor = "", this.cameraOffset}) : super(key: key);
 
   @override
-  GameState createState({key, showInEnum}) => GameState();
+  GameState createState({key, showInEnum, fromSensor}) => GameState(showInEnum: this.showInEnum, fromSensor: this.fromSensor, cameraOffset: this.cameraOffset);
 }
 
 class GameState extends State<Game> with WidgetsBindingObserver implements GameListener {
   GameController _controller;
 
   final ShowInEnum showInEnum;
+  final String fromSensor;
+  final Vector2 cameraOffset;
+
   static String mapLocation = 'biome1';
   static TiledWorldMap mapData;
+  static Map<String, Vector2> mapSensors = {};
 
   @override
   void initState() {
@@ -33,38 +40,62 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     super.initState();
   }
 
-  GameState({Key key, this.showInEnum = ShowInEnum.left});
+  GameState({Key key, this.showInEnum, this.fromSensor, this.cameraOffset});
   @override
   Widget build(BuildContext context) {
+
     print('map init');
     GameState.mapData = this._initMap(context);
 
     print('object loader init');
-    rootBundle.loadString('assets/images/' + GameState.mapData.path).then((String result){
-      final decoded = json.decode(result);
-      print('mapdata decoded successfully');
 
-      final Iterable objectGroups = decoded['layers'].where((element) => element["type"] == "objectgroup");
-      print('found ${objectGroups.length} objectGroups');
+    return FutureBuilder(
+      future: rootBundle.loadString('assets/images/' + GameState.mapData.path),
+      // ignore: missing_return
+      builder: (context, snapshot) {
+        final decoded = json.decode(snapshot.data.toString());
+        print('mapdata decoded successfully');
 
-      objectGroups.forEach((objectGroup) {
-
-        print('objectGroup: ${objectGroup['name']}');
-        objectGroup['objects'].forEach((object) {
-          GameState.mapData.registerObject(
-            object['name'],
-            (p) => ExitMapSensor(
-              object['name'],
-              p.position,
-              p.size,
-              (v) => _exitMap(v, context),
-           ),
+        if (decoded == null) {
+          return Center(
+            child: Text("Loading"),
           );
-        });
-      });
-    });
+        } else {
 
-    return this._buildInterface(context);
+          final Iterable objectGroups = decoded['layers'].where((element) => element["type"] == "objectgroup");
+          print('found ${objectGroups.length} objectGroups');
+
+          GameState.mapSensors = {};
+          objectGroups.forEach((objectGroup) {
+            print('objectGroup: ${objectGroup['name']}');
+
+            // load objects
+            objectGroup['objects'].forEach((object) {
+              if (object['name'].startsWith('sensor')) {
+
+                String sensorTarget = object['name'].substring(object['name'].lastIndexOf(":") + 1, object['name'].length);
+
+                // track sensor
+                GameState.mapSensors[sensorTarget] = Vector2(object['x'].toDouble(), object['y'].toDouble());
+
+                // register sensor
+                GameState.mapData.registerObject(
+                  object['name'],
+                  (p) => ExitMapSensor(
+                    object['name'],
+                    p.position,
+                    p.size,
+                    (v) => _exitMap(v, context),
+                  ),
+                );
+              }
+            });
+          });
+
+          return this._buildInterface(context);
+        }
+      },
+    );
   }
 
   void addComponent(GameComponent gameComponent) {
@@ -127,6 +158,21 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   }
 
   Vector2 _getInitPosition() {
+
+    //todo direction offset
+    //todo rename showinenum to direction enum
+    //todo rewrite to make better
+    var directionOffset = Vector2(tileSize, 0);
+
+    if (this.fromSensor.isNotEmpty && mapSensors.containsKey(this.fromSensor)) {
+      print('getting location of sensor: ${this.fromSensor} - ${mapSensors[this.fromSensor]}');
+      if (this.cameraOffset != null) {
+        return mapSensors[this.fromSensor] + this.cameraOffset + directionOffset;
+      } else {
+        return mapSensors[this.fromSensor];
+      }
+    }
+
     switch (showInEnum) {
       case ShowInEnum.left:
         return Vector2(tileSize * 2, tileSize * 10);
@@ -146,11 +192,15 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   }
 
   void _exitMap(String value, BuildContext context) {
-    var mapName = value.substring(value.lastIndexOf(":") + 1, value.length);
-    GameState.mapLocation = mapName;
-    context.goTo(Game(
+    var curMapName = GameState.mapLocation;
+    var targetMapName = value.substring(value.lastIndexOf(":") + 1, value.length);
+    var cameraOffset = _controller.camera.position;
+    GameState.mapLocation = targetMapName;
+    Navigator.push(context, MaterialPageRoute(builder: (_) => new Game(
       showInEnum: ShowInEnum.left,
-    ));
+      fromSensor: curMapName,
+      cameraOffset: cameraOffset,
+    )));
   }
 
   Direction _getDirection() {

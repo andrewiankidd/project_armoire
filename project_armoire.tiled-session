@@ -9,10 +9,10 @@
     "fileStates": {
         "assets/images/maps/biome1/data.json": {
             "scale": 2,
-            "selectedLayer": 1,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 200.75,
-                "y": 195
+                "x": 336.5,
+                "y": 136.5
             }
         },
         "assets/images/maps/biome1/tileset.json": {
@@ -20,11 +20,11 @@
             "scaleInEditor": 1
         },
         "assets/images/maps/biome2/data.json": {
-            "scale": 0.7546370967741934,
-            "selectedLayer": 0,
+            "scale": 1.5,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 890.4942559444296,
-                "y": 573.7857333689556
+                "x": 2.6666666666666856,
+                "y": 248
             }
         },
         "assets/images/maps/biome2/tileset.json": {
