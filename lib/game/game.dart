@@ -157,20 +157,43 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     );
   }
 
+  Vector2 _getDirectionalOffset() {
+    switch (showInEnum) {
+      case ShowInEnum.left:
+        return Vector2(tileSize, 0);
+        break;
+      case ShowInEnum.right:
+        return Vector2(-tileSize, 0);
+        break;
+      case ShowInEnum.top:
+        return Vector2(0, tileSize);
+        break;
+      case ShowInEnum.bottom:
+        return Vector2(0, -tileSize);
+        break;
+      default:
+        return Vector2.zero();
+    }
+  }
+
   Vector2 _getInitPosition() {
 
-    //todo direction offset
     //todo rename showinenum to direction enum
     //todo rewrite to make better
-    var directionOffset = Vector2(tileSize, 0);
 
     if (this.fromSensor.isNotEmpty && mapSensors.containsKey(this.fromSensor)) {
-      print('getting location of sensor: ${this.fromSensor} - ${mapSensors[this.fromSensor]}');
+      print('getting location of sensor: ${this.fromSensor}}');
+      print('sensorOffset: ${mapSensors[this.fromSensor]}}');
+      print('cameraOffset: ${this.cameraOffset}}');
+      print('directionalOffset: ${this._getDirectionalOffset()}}');
+      var val = mapSensors[this.fromSensor];
+
       if (this.cameraOffset != null) {
-        return mapSensors[this.fromSensor] + this.cameraOffset + directionOffset;
-      } else {
-        return mapSensors[this.fromSensor];
+        val += this.cameraOffset + this._getDirectionalOffset();
       }
+
+      print('val: ${val}}');
+      return val;
     }
 
     switch (showInEnum) {
@@ -194,7 +217,11 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   void _exitMap(String value, BuildContext context) {
     var curMapName = GameState.mapLocation;
     var targetMapName = value.substring(value.lastIndexOf(":") + 1, value.length);
-    var cameraOffset = _controller.camera.position;
+    var cameraOffset = _controller.camera.position - _controller.camera.relativeOffset;
+    print('camera.position ${_controller.camera.position}');
+    print('camera.relativeOffset ${_controller.camera.relativeOffset}');
+    print('cameraOffset ${cameraOffset}');
+
     GameState.mapLocation = targetMapName;
     Navigator.push(context, MaterialPageRoute(builder: (_) => new Game(
       showInEnum: ShowInEnum.left,
