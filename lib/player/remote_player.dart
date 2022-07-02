@@ -6,21 +6,29 @@ class RemotePlayer extends SimpleEnemy with ObjectCollision {
   static const REDUCTION_SPEED_DIAGONAL = 0.7;
   JoystickMoveDirectional currentMove = JoystickMoveDirectional.IDLE;
 
-  final PlayerData playerData;
+  // player data
+  PlayerData playerData;
+  // JoystickMoveDirectional playerDirectional;
+  Vector2 playerPosition;
 
-  final Vector2 initPosition;
+  // rendering
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;
+  // bool isWater = false;
 
+  // ui
   TextSpan playerUsernameLabel;
   TextPainter textPainter;
-
   Paint _paintFocus = Paint()
     ..blendMode = BlendMode.clear;
   bool isWater = false;
 
-  RemotePlayer(this.playerData, this.initPosition, SpriteSheet spriteSheet,
-      {Direction initDirection = Direction.right})
+  RemotePlayer(
+        this.playerData,
+        this.playerPosition,
+        SpriteSheet spriteSheet,
+        {Direction initDirection = Direction.right}
+      )
       : super(
           animation:SimpleDirectionAnimation(
               idleUp: spriteSheet.createAnimation(row: 0, stepTime: 0.1, loop: true, from: 0, to: 1).asFuture(),
@@ -40,7 +48,7 @@ class RemotePlayer extends SimpleEnemy with ObjectCollision {
               }
           ),
           size: Vector2(sizePlayer, sizePlayer),
-          position: initPosition,
+          position: playerPosition,
           initDirection: initDirection,
           life: 100,
           speed: sizePlayer * 2,

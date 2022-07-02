@@ -1,9 +1,11 @@
+import 'package:bonfire/bonfire.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../config/config.dart';
 import '../main.dart';
 import '../game/game.dart';
 import '../player/game_player.dart';
+import '../player/sprite_sheet_hero.dart';
 import '../util/extensions.dart';
 import '../net/net_player.dart';
 
@@ -70,13 +72,21 @@ class MainMenuState extends State<MainMenu> {
                           setState(() {
                             if (_formKey.currentState.validate()) {
 
-                                GamePlayer.playerData = PlayerData(
+                                // new player object
+                                PlayerData newPlayer = new PlayerData(
                                   playerId: kDebugMode ? "${Config.deviceId}-${_playerUsernameController.value.text}" : Config.deviceId,
                                   playerUsername: _playerUsernameController.value.text,
+                                  playerMoveData: new PlayerMoveData(
+                                      playerId: kDebugMode ? "${Config.deviceId}-${_playerUsernameController.value.text}" : Config.deviceId,
+                                      direction: JoystickMoveDirectional.MOVE_RIGHT,
+                                      position: new Vector2(0, 0)
+                                  )
                                 );
-                                NetPlayer().playerJoin(GamePlayer.playerData);
 
-                              context.goTo(Game(key: gameStateKey));
+                                // add to network
+                                NetPlayer().playerJoin(newPlayer);
+
+                              context.goTo(Game(key: gameStateKey, playerData: newPlayer));
                             }
                           });
                         },

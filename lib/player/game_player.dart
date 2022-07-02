@@ -4,20 +4,27 @@ import '../main.dart';
 import '../net/net_player.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
-  static PlayerData playerData;
 
-  final Vector2 initPosition;
+  // player data
+  PlayerData playerData;
+  Vector2 playerPosition;
+
+  // rendering
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;
-
-  TextSpan playerUsernameLabel;
-  TextPainter textPainter;
-
-  Paint _paintFocus = Paint()
-    ..blendMode = BlendMode.clear;
   bool isWater = false;
 
-  GamePlayer(this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
+  // ui
+  TextSpan playerUsernameLabel;
+  TextPainter textPainter;
+  Paint _paintFocus = Paint()
+    ..blendMode = BlendMode.clear;
+
+
+  GamePlayer(
+        PlayerData this.playerData,
+        SpriteSheet spriteSheet
+      )
       : super(
           animation:SimpleDirectionAnimation(
               idleUp: spriteSheet.createAnimation(row: 0, stepTime: 0.1, loop: true, from: 0, to: 1).asFuture(),
@@ -37,24 +44,24 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
               }
           ),
           size: Vector2(sizePlayer, sizePlayer),
-          position: initPosition,
-          initDirection: initDirection,
+          position: playerData.playerMoveData.position,
+          initDirection: Direction.down,
           life: 100,
           speed: sizePlayer * 2,
       ) {
 
     // setup label sizes
-    this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: GamePlayer.playerData.playerUsername);
+    this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: this.playerData.playerUsername);
     this.textPainter = new TextPainter(text: this.playerUsernameLabel, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
 
     // setup collision (redundant comment)
     this.setupCollision(
       CollisionConfig(
         collisions: [
-          CollisionArea.rectangle(
-            size: Vector2(sizePlayer / 2, sizePlayer * 0.5),
-            align: Vector2(sizePlayer * 0.25, sizePlayer * 0.5),
-          ),
+          // CollisionArea.rectangle(
+          //   size: Vector2(sizePlayer / 2, sizePlayer * 0.5),
+          //   align: Vector2(sizePlayer * 0.25, sizePlayer * 0.5),
+          // ),
         ],
       ),
     );
@@ -62,6 +69,9 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
 
   @override
   void joystickChangeDirectional(JoystickDirectionalEvent event) {
+
+    this.playerData.playerMoveData.direction = event.directional;
+
     if (event.directional != JoystickMoveDirectional.IDLE) {
       speed = (baseSpeed * (isWater ? 0.5 : 1)) * event.intensity;
     }
@@ -70,7 +80,7 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
 
     // network broadcast movement data
     var data = PlayerMoveData(
-      playerId: GamePlayer.playerData.playerId,
+      playerId: this.playerData.playerId,
       direction: event.directional,
       position: Vector2(
         position.x,

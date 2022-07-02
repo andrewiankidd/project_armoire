@@ -10,7 +10,7 @@ An attempt at building something open source, cross-platform and hacky.
 
 [![Website Link](https://img.shields.io/badge/%f0%9f%8c%90%20Website-cadetblue.svg)](https://andrewiankidd.github.io/project_armoire/)
 
-[![Launch Link](https://img.shields.io/badge/%f0%9f%95%b9%ef%b8%8f%20Launch-cadetblue.svg)](https://andrewiankidd.github.io/project_armoire/game.html)
+[![Launch Link](https://img.shields.io/badge/%f0%9f%95%b9%ef%b8%8f%20Launch-cadetblue.svg)](./game.html)
 
 [![APK Link](https://img.shields.io/badge/Android%20Download-green.svg?logo=android)](https://github.com/andrewiankidd/project_armoire/releases/latest/download/android-release.apk)
 

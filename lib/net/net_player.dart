@@ -1,16 +1,14 @@
 import 'dart:developer' as developer;
 import 'package:bonfire/bonfire.dart';
+import 'package:project_armoire/game/game.dart';
 import '../main.dart';
 import '../net/net.dart';
-import '../player/game_player.dart';
 
 import '../player/remote_player.dart';
 import '../player/sprite_sheet_hero.dart';
 
 // networked player methods
 class NetPlayer {
-
-    static List<RemotePlayer> remotePlayers = [];
 
     void handleMessage(NetMessage message) {
         developer.log('handleMessage: ${developer.inspect(message)}', name: 'project_armoire.NetPlayer');
@@ -33,31 +31,34 @@ class NetPlayer {
 
     // what to do when player joins session
     void onPlayerJoin(PlayerData playerData) {
-        developer.log('onPlayerJoin: ${developer.inspect(playerData)}', name: 'project_armoire.NetPlayer');
-        if (GamePlayer.playerData != null && playerData.playerId == GamePlayer.playerData.playerId) {
-            // ignore our own id
-            return;
-        }
+
+        // // ignore local players
+        // if (GameState.playerData.playerId == (playerData.playerId)) {
+        //     return;
+        // }
+
         // announce own presence
-        if (_existingPlayerById(playerData.playerId) == null) {
-            this.playerJoin(GamePlayer.playerData);
+        developer.log('onPlayerJoin: ${developer.inspect(playerData)}', name: 'project_armoire.NetPlayer');
+        if (GameState.remotePlayers.containsKey(playerData.playerId)) {
+            this.playerJoin(playerData);
         }
+
         // prevent dupes
         this._removePlayer(playerData);
+
         // add player
         this._addPlayer(playerData);
     }
 
-    RemotePlayer _existingPlayerById(String playerId) {
-        return NetPlayer.remotePlayers.firstWhere((player) => player.playerData.playerId == playerId, orElse: () => null);
-    }
-
     void _removePlayer(PlayerData playerData) {
         // remove any matching playerIds to prevent duplication
-        RemotePlayer existingPlayer = _existingPlayerById(playerData.playerId);
-        if (existingPlayer != null) {
-            NetPlayer.remotePlayers = (List.from(Set.from(NetPlayer.remotePlayers).difference(Set.from([playerData]))));
-            gameStateKey.currentState.removeComponent(existingPlayer);
+        if (GameState.remotePlayers.containsKey(playerData.playerId)) {
+
+            // remove from state
+            GameState.remotePlayers.remove(playerData.playerId);
+
+            // remove component
+            gameStateKey.currentState.removeComponent(GameState.remotePlayers[playerData.playerId]);
         }
     }
 
@@ -65,9 +66,10 @@ class NetPlayer {
         //create remoteplayer
         RemotePlayer remotePlayer = RemotePlayer(playerData, Vector2(tileSize * 2, tileSize * 10), SpriteSheetHero.current);
 
-        // dump em in
-        NetPlayer.remotePlayers.add(remotePlayer);
+        // add to state
+        GameState.remotePlayers[playerData.playerId] = remotePlayer;
 
+        // add to component
         gameStateKey.currentState.addComponent(remotePlayer);
     }
 
@@ -79,13 +81,12 @@ class NetPlayer {
     // what to do when player moves in a session
     void onPlayerMove(PlayerMoveData moveData) {
         developer.log('onPlayerMove: ${developer.inspect(moveData)}', name: 'project_armoire.NetPlayer');
-        if (moveData.playerId == GamePlayer.playerData.playerId) {
+        if (GameState.remotePlayers.containsKey(moveData.playerId)) {
             // ignore our own id
             return;
         }
 
-        RemotePlayer remotePlayer = NetPlayer.remotePlayers.firstWhere((remotePlayer) => remotePlayer.playerData.playerId == moveData.playerId);
-        gameStateKey.currentState.moveComponent(remotePlayer, moveData);
+        gameStateKey.currentState.moveComponent(GameState.remotePlayers[moveData.playerId], moveData);
     }
 }
 
@@ -93,16 +94,19 @@ class NetPlayer {
 class PlayerData {
     String playerId;
     String playerUsername;
+    PlayerMoveData playerMoveData;
 
-    PlayerData({this.playerId, this.playerUsername});
-    PlayerData.fromJson(Map<String, dynamic> json)
-        : playerId =  json['playerId'],
-        playerUsername = json['playerUsername'];
+    PlayerData({this.playerId, this.playerUsername, this.playerMoveData});
+    PlayerData.fromJson(Map<String, dynamic> json):
+        playerId =  json['playerId'],
+        playerUsername = json['playerUsername'],
+        playerMoveData = json['playerMoveData'];
 
     Map<String, dynamic> toJson() =>
     {
         'playerId': playerId,
-        'playerUsername': playerUsername
+        'playerUsername': playerUsername,
+        'playerMoveData': playerMoveData
     };
 }
 
@@ -118,8 +122,8 @@ class PlayerMoveData {
         this.position = position;
     }
 
-    PlayerMoveData.fromJson(Map<String, dynamic> json)
-        : playerId =  json['playerId'],
+    PlayerMoveData.fromJson(Map<String, dynamic> json):
+        playerId =  json['playerId'],
         direction = JoystickMoveDirectional.values[json['direction']],
         position = Vector2(json['position']['x'], json['position']['y']);
 

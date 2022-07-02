@@ -1,9 +1,9 @@
 {
-    "activeFile": "assets/images/maps/biome1/data.json",
+    "activeFile": "assets/images/maps/biome2/data.json",
     "expandedProjectPaths": [
-        "assets/images/maps/biome1",
+        "assets/images/maps/biome2",
         "assets/images/maps",
-        "assets/images/maps/biome2"
+        "assets/images/maps/biome1"
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
@@ -34,14 +34,14 @@
     },
     "openFiles": [
         "assets/images/maps/biome1/data.json",
-        "assets/images/maps/biome1/tileset.json"
+        "assets/images/maps/biome2/data.json"
     ],
     "project": "project_armoire.tiled-project",
     "recentFiles": [
-        "assets/images/maps/biome1/tileset.json",
         "assets/images/maps/biome1/data.json",
-        "assets/images/maps/biome2/tileset.json",
-        "assets/images/maps/biome2/data.json"
+        "assets/images/maps/biome2/data.json",
+        "assets/images/maps/biome1/tileset.json",
+        "assets/images/maps/biome2/tileset.json"
     ],
     "resizeMap.removeObjects": false
 }

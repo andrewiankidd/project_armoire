@@ -12,26 +12,30 @@ import '../player/sprite_sheet_hero.dart';
 import '../util/exit_map_sensor.dart';
 
 class Game extends StatefulWidget {
-  final ShowInEnum showInEnum;
+  final PlayerData playerData;
   final String fromSensor;
   final Vector2 cameraOffset;
 
-  const Game({Key key, this.showInEnum = ShowInEnum.left, this.fromSensor = "", this.cameraOffset}) : super(key: key);
+  const Game({Key key, this.playerData, this.fromSensor = "", this.cameraOffset}) : super(key: key);
 
   @override
-  GameState createState({key, showInEnum, fromSensor}) => GameState(showInEnum: this.showInEnum, fromSensor: this.fromSensor, cameraOffset: this.cameraOffset);
+  GameState createState({key, playerData, fromSensor}) => GameState(playerData: this.playerData, fromSensor: this.fromSensor, cameraOffset: this.cameraOffset);
 }
 
 class GameState extends State<Game> with WidgetsBindingObserver implements GameListener {
   GameController _controller;
+  GamePlayer gamePlayer;
 
-  final ShowInEnum showInEnum;
+  final PlayerData playerData;
   final String fromSensor;
   final Vector2 cameraOffset;
 
   static String mapLocation = 'biome1';
   static TiledWorldMap mapData;
   static Map<String, Vector2> mapSensors = {};
+
+  // player
+  static final Map<String, RemotePlayer> remotePlayers = <String, RemotePlayer>{};
 
   @override
   void initState() {
@@ -40,7 +44,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     super.initState();
   }
 
-  GameState({Key key, this.showInEnum, this.fromSensor, this.cameraOffset});
+  GameState({Key key, this.playerData, this.fromSensor, this.cameraOffset});
   @override
   Widget build(BuildContext context) {
 
@@ -48,7 +52,6 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     GameState.mapData = this._initMap(context);
 
     print('object loader init');
-
     return FutureBuilder(
       future: rootBundle.loadString('assets/images/' + GameState.mapData.path),
       // ignore: missing_return
@@ -139,11 +142,8 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
           )
         ],
       ),
-      player: GamePlayer(
-        _getInitPosition(),
-        SpriteSheetHero.current,
-        initDirection: _getDirection(),
-      ),
+      // // add to component
+      player: this._initGamePlayer(),
       map: GameState.mapData,
       colorFilter: GameColorFilter(color: Color.fromRGBO(255, 112, 214, 0.66), blendMode: BlendMode.hue),
       cameraConfig: CameraConfig(
@@ -157,56 +157,82 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     );
   }
 
-  Vector2 _getDirectionalOffset() {
-    switch (showInEnum) {
-      case ShowInEnum.left:
-        return Vector2(tileSize, 0);
-        break;
-      case ShowInEnum.right:
+  GamePlayer _initGamePlayer() {
+    this.gamePlayer = new GamePlayer(
+        PlayerData(
+            playerId: this.playerData.playerId,
+            playerUsername: this.playerData.playerUsername,
+            playerMoveData: PlayerMoveData(
+                playerId: this.playerData.playerId,
+                direction: this.playerData.playerMoveData.direction,
+                position: _getPlayerPosition(this.playerData.playerMoveData)
+            )
+        ),
+        SpriteSheetHero.current
+    );
+    return this.gamePlayer;
+  }
+
+  Vector2 _getDirectionalOffset(PlayerMoveData playerMoveData) {
+    switch (playerMoveData.direction) {
+      case JoystickMoveDirectional.MOVE_LEFT:
         return Vector2(-tileSize, 0);
         break;
-      case ShowInEnum.top:
-        return Vector2(0, tileSize);
+      case JoystickMoveDirectional.MOVE_RIGHT:
+        return Vector2(tileSize, 0);
         break;
-      case ShowInEnum.bottom:
+      case JoystickMoveDirectional.MOVE_UP:
         return Vector2(0, -tileSize);
+        break;
+      case JoystickMoveDirectional.MOVE_DOWN:
+        return Vector2(0, tileSize);
         break;
       default:
         return Vector2.zero();
     }
   }
 
-  Vector2 _getInitPosition() {
+  Vector2 _getPlayerPosition(PlayerMoveData playerMoveData) {
 
-    //todo rename showinenum to direction enum
     //todo rewrite to make better
 
     if (this.fromSensor.isNotEmpty && mapSensors.containsKey(this.fromSensor)) {
       print('getting location of sensor: ${this.fromSensor}}');
       print('sensorOffset: ${mapSensors[this.fromSensor]}}');
+      print('playerLocation: ${playerMoveData.position}}');
       print('cameraOffset: ${this.cameraOffset}}');
-      print('directionalOffset: ${this._getDirectionalOffset()}}');
-      var val = mapSensors[this.fromSensor];
+      print('direction: ${playerMoveData.direction}}');
+      print('directionalOffset: ${this._getDirectionalOffset(playerMoveData)}}');
+      //var val = (mapSensors[this.fromSensor] + (this.cameraOffset/2)) + this._getDirectionalOffset(playerMoveData);
+      var val = mapSensors[this.fromSensor] + this._getDirectionalOffset(playerMoveData);
 
-      if (this.cameraOffset != null) {
-        val += this.cameraOffset + this._getDirectionalOffset();
-      }
+      // if (this.cameraOffset != null) {
+      //   if (playerMoveData.direction == JoystickMoveDirectional.MOVE_RIGHT) {
+      //     val += this.cameraOffset;
+      //   }
+      //   else if (playerMoveData.direction == JoystickMoveDirectional.MOVE_LEFT) {
+      //     val += this.cameraOffset;
+      //   } else {
+      //     val -= this.cameraOffset;
+      //
+      //   }
+      // }
 
       print('val: ${val}}');
       return val;
     }
 
-    switch (showInEnum) {
-      case ShowInEnum.left:
+    switch (playerMoveData.direction) {
+      case JoystickMoveDirectional.MOVE_LEFT:
         return Vector2(tileSize * 2, tileSize * 10);
         break;
-      case ShowInEnum.right:
+      case JoystickMoveDirectional.MOVE_RIGHT:
         return Vector2(tileSize * 27, tileSize * 12);
         break;
-      case ShowInEnum.top:
+      case JoystickMoveDirectional.MOVE_UP:
         return Vector2.zero();
         break;
-      case ShowInEnum.bottom:
+      case JoystickMoveDirectional.MOVE_DOWN:
         return Vector2.zero();
         break;
       default:
@@ -217,31 +243,39 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   void _exitMap(String value, BuildContext context) {
     var curMapName = GameState.mapLocation;
     var targetMapName = value.substring(value.lastIndexOf(":") + 1, value.length);
-    var cameraOffset = _controller.camera.position - _controller.camera.relativeOffset;
-    print('camera.position ${_controller.camera.position}');
-    print('camera.relativeOffset ${_controller.camera.relativeOffset}');
-    print('cameraOffset ${cameraOffset}');
+    var cameraOffset = _controller.camera.relativeOffset;
+    // var cameraOffset = _controller.camera.position;// - _controller.camera.relativeOffset;
+    // print('camera.position ${_controller.camera.position}');
+    // print('camera.cameraRect ${_controller.camera.cameraRect}');
+    // print('camera.relativeOffset ${_controller.camera.relativeOffset}');
+    // print('camera.canvasSize ${_controller.camera.canvasSize}');
+    // print('camera.viewport.canvasSize ${_controller.camera.viewport.canvasSize}');
+    // print('camera.viewport.effectiveSize ${_controller.camera.viewport.effectiveSize}');
+    // print('camera.gameSize ${_controller.camera.gameSize}');
+    // print('player.position ${_controller.player.position}');
+    // print('cameraOffset ${cameraOffset}');
+    // _controller.player.absolutePosition;
 
     GameState.mapLocation = targetMapName;
     Navigator.push(context, MaterialPageRoute(builder: (_) => new Game(
-      showInEnum: ShowInEnum.left,
+      playerData: this.gamePlayer.playerData,
       fromSensor: curMapName,
       cameraOffset: cameraOffset,
     )));
   }
 
   Direction _getDirection() {
-    switch (showInEnum) {
-      case ShowInEnum.left:
+    switch (this.playerData.playerMoveData.direction) {
+      case JoystickMoveDirectional.MOVE_LEFT:
         return Direction.right;
         break;
-      case ShowInEnum.right:
+      case JoystickMoveDirectional.MOVE_RIGHT:
         return Direction.left;
         break;
-      case ShowInEnum.top:
+      case JoystickMoveDirectional.MOVE_UP:
         return Direction.right;
         break;
-      case ShowInEnum.bottom:
+      case JoystickMoveDirectional.MOVE_DOWN:
         return Direction.right;
         break;
       default:
