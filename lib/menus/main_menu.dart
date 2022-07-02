@@ -21,6 +21,8 @@ class MainMenuState extends State<MainMenu> {
   final TextEditingController _playerUsernameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  static PlayerData playerData;
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -73,7 +75,7 @@ class MainMenuState extends State<MainMenu> {
                             if (_formKey.currentState.validate()) {
 
                                 // new player object
-                                PlayerData newPlayer = new PlayerData(
+                                MainMenuState.playerData = new PlayerData(
                                   playerId: kDebugMode ? "${Config.deviceId}-${_playerUsernameController.value.text}" : Config.deviceId,
                                   playerUsername: _playerUsernameController.value.text,
                                   playerMoveData: new PlayerMoveData(
@@ -84,9 +86,9 @@ class MainMenuState extends State<MainMenu> {
                                 );
 
                                 // add to network
-                                NetPlayer().playerJoin(newPlayer);
+                                NetPlayer().playerJoin(MainMenuState.playerData);
 
-                              context.goTo(Game(key: gameStateKey, playerData: newPlayer));
+                              context.goTo(Game(key: gameStateKey, playerData: MainMenuState.playerData));
                             }
                           });
                         },

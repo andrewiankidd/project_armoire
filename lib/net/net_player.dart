@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:bonfire/bonfire.dart';
 import 'package:project_armoire/game/game.dart';
+import 'package:project_armoire/menus/main_menu.dart';
 import '../main.dart';
 import '../net/net.dart';
 
@@ -26,6 +27,12 @@ class NetPlayer {
 
     // to join a session
     void playerJoin(PlayerData playerData) {
+        // // ignore local players
+        if (MainMenuState.playerData.playerId == playerData.playerId) {
+            // ignore our own id
+            return;
+        }
+
         Net().broadcastUpdate('player', 'playerJoinData', playerData);
     }
 
@@ -33,9 +40,10 @@ class NetPlayer {
     void onPlayerJoin(PlayerData playerData) {
 
         // // ignore local players
-        // if (GameState.playerData.playerId == (playerData.playerId)) {
-        //     return;
-        // }
+        if (MainMenuState.playerData.playerId == playerData.playerId) {
+            // ignore our own id
+            return;
+        }
 
         // announce own presence
         developer.log('onPlayerJoin: ${developer.inspect(playerData)}', name: 'project_armoire.NetPlayer');
@@ -75,13 +83,19 @@ class NetPlayer {
 
     // to move in a session
     void playerMoveData(PlayerMoveData moveData) {
+        // // ignore local players
+        if (MainMenuState.playerData.playerId == moveData.playerId) {
+            // ignore our own id
+            return;
+        }
+
         Net().broadcastUpdate('player', 'playerMoveData', moveData);
     }
 
     // what to do when player moves in a session
     void onPlayerMove(PlayerMoveData moveData) {
         developer.log('onPlayerMove: ${developer.inspect(moveData)}', name: 'project_armoire.NetPlayer');
-        if (GameState.remotePlayers.containsKey(moveData.playerId)) {
+        if (MainMenuState.playerData.playerId == moveData.playerId) {
             // ignore our own id
             return;
         }
@@ -100,7 +114,7 @@ class PlayerData {
     PlayerData.fromJson(Map<String, dynamic> json):
         playerId =  json['playerId'],
         playerUsername = json['playerUsername'],
-        playerMoveData = json['playerMoveData'];
+        playerMoveData = PlayerMoveData.fromJson(json['playerMoveData']);
 
     Map<String, dynamic> toJson() =>
     {

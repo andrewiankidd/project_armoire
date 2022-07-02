@@ -1,25 +1,21 @@
-import 'dart:convert';
 import 'dart:math';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:project_armoire/game/map.dart';
 import 'package:project_armoire/net/net_player.dart';
 import '../main.dart';
 import '../player/game_player.dart';
 import '../player/remote_player.dart';
 import '../player/sprite_sheet_hero.dart';
-import '../util/exit_map_sensor.dart';
 
 class Game extends StatefulWidget {
   final PlayerData playerData;
-  final String fromSensor;
-  final Vector2 cameraOffset;
 
-  const Game({Key key, this.playerData, this.fromSensor = "", this.cameraOffset}) : super(key: key);
+  const Game({Key key, this.playerData}) : super(key: key);
 
   @override
-  GameState createState({key, playerData, fromSensor}) => GameState(playerData: this.playerData, fromSensor: this.fromSensor, cameraOffset: this.cameraOffset);
+  GameState createState({key, playerData}) => GameState(playerData: this.playerData);
 }
 
 class GameState extends State<Game> with WidgetsBindingObserver implements GameListener {
@@ -27,12 +23,10 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   GamePlayer gamePlayer;
 
   final PlayerData playerData;
-  final String fromSensor;
   final Vector2 cameraOffset;
 
-  static String mapLocation = 'biome1';
-  static TiledWorldMap mapData;
-  static Map<String, Vector2> mapSensors = {};
+  TiledWorldMap tiledWorldMap;
+  String mapName = 'biome1';
 
   // player
   static final Map<String, RemotePlayer> remotePlayers = <String, RemotePlayer>{};
@@ -44,85 +38,14 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     super.initState();
   }
 
-  GameState({Key key, this.playerData, this.fromSensor, this.cameraOffset});
+  GameState({Key key, this.playerData, this.cameraOffset});
   @override
   Widget build(BuildContext context) {
-
-    print('map init');
-    GameState.mapData = this._initMap(context);
-
-    print('object loader init');
-    return FutureBuilder(
-      future: rootBundle.loadString('assets/images/' + GameState.mapData.path),
-      // ignore: missing_return
-      builder: (context, snapshot) {
-        final decoded = json.decode(snapshot.data.toString());
-        print('mapdata decoded successfully');
-
-        if (decoded == null) {
-          return Center(
-            child: Text("Loading"),
-          );
-        } else {
-
-          final Iterable objectGroups = decoded['layers'].where((element) => element["type"] == "objectgroup");
-          print('found ${objectGroups.length} objectGroups');
-
-          GameState.mapSensors = {};
-          objectGroups.forEach((objectGroup) {
-            print('objectGroup: ${objectGroup['name']}');
-
-            // load objects
-            objectGroup['objects'].forEach((object) {
-              if (object['name'].startsWith('sensor')) {
-
-                String sensorTarget = object['name'].substring(object['name'].lastIndexOf(":") + 1, object['name'].length);
-
-                // track sensor
-                GameState.mapSensors[sensorTarget] = Vector2(object['x'].toDouble(), object['y'].toDouble());
-
-                // register sensor
-                GameState.mapData.registerObject(
-                  object['name'],
-                  (p) => ExitMapSensor(
-                    object['name'],
-                    p.position,
-                    p.size,
-                    (v) => _exitMap(v, context),
-                  ),
-                );
-              }
-            });
-          });
-
-          return this._buildInterface(context);
-        }
-      },
-    );
+    return this._buildBonfire();
   }
 
-  void addComponent(GameComponent gameComponent) {
-    this._controller.addGameComponent(gameComponent);
-  }
-
-  void removeComponent(GameComponent gameComponent) {
-    this._controller.remove(gameComponent);
-  }
-
-  void moveComponent(GameComponent gameComponent, PlayerMoveData playerMoveData) {
-    var remotePlayer = this._controller.livingEnemies.first as RemotePlayer;
-    remotePlayer.moveRemotePlayer(playerMoveData);
-  }
-
-  TiledWorldMap _initMap(BuildContext context) {
-    return TiledWorldMap(
-      'maps/${GameState.mapLocation}/data.json',
-      forceTileSize: Size(tileSize, tileSize),
-    );
-  }
-
-  Widget _buildInterface(BuildContext context) {
-    return BonfireTiledWidget(
+  Widget _buildBonfire() {
+    BonfireTiledWidget bonfireTiledWidget = BonfireTiledWidget(
       showCollisionArea: kDebugMode,
       showFPS: true,
       joystick: Joystick(
@@ -144,7 +67,16 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       ),
       // // add to component
       player: this._initGamePlayer(),
-      map: GameState.mapData,
+      map: TiledMap(
+          context: context,
+          playerData: this.playerData,
+          mapName: this.mapName,
+          refreshMap: (String tiledWorldMapName) {
+            setState(() {
+              this.mapName = tiledWorldMapName;
+            });
+          }
+      ).tiledWorldMap,
       colorFilter: GameColorFilter(color: Color.fromRGBO(255, 112, 214, 0.66), blendMode: BlendMode.hue),
       cameraConfig: CameraConfig(
         moveOnlyMapArea: true,
@@ -155,6 +87,28 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       progress: SizedBox.shrink(),
       gameController: this._controller,
     );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(this.mapName),
+      ),
+      body: Center(
+          child: bonfireTiledWidget
+      ),
+    );
+  }
+
+  void addComponent(GameComponent gameComponent) {
+    this._controller.addGameComponent(gameComponent);
+  }
+
+  void removeComponent(GameComponent gameComponent) {
+    this._controller.remove(gameComponent);
+  }
+
+  void moveComponent(GameComponent gameComponent, PlayerMoveData playerMoveData) {
+    var remotePlayer = this._controller.livingEnemies.first as RemotePlayer;
+    remotePlayer.moveRemotePlayer(playerMoveData);
   }
 
   GamePlayer _initGamePlayer() {
@@ -196,6 +150,8 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
 
     //todo rewrite to make better
 
+    var val = this._getDirectionalOffset(playerMoveData);
+    /*
     if (this.fromSensor.isNotEmpty && mapSensors.containsKey(this.fromSensor)) {
       print('getting location of sensor: ${this.fromSensor}}');
       print('sensorOffset: ${mapSensors[this.fromSensor]}}');
@@ -221,7 +177,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       print('val: ${val}}');
       return val;
     }
-
+    */
     switch (playerMoveData.direction) {
       case JoystickMoveDirectional.MOVE_LEFT:
         return Vector2(tileSize * 2, tileSize * 10);
@@ -238,30 +194,6 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       default:
         return Vector2.zero();
     }
-  }
-
-  void _exitMap(String value, BuildContext context) {
-    var curMapName = GameState.mapLocation;
-    var targetMapName = value.substring(value.lastIndexOf(":") + 1, value.length);
-    var cameraOffset = _controller.camera.relativeOffset;
-    // var cameraOffset = _controller.camera.position;// - _controller.camera.relativeOffset;
-    // print('camera.position ${_controller.camera.position}');
-    // print('camera.cameraRect ${_controller.camera.cameraRect}');
-    // print('camera.relativeOffset ${_controller.camera.relativeOffset}');
-    // print('camera.canvasSize ${_controller.camera.canvasSize}');
-    // print('camera.viewport.canvasSize ${_controller.camera.viewport.canvasSize}');
-    // print('camera.viewport.effectiveSize ${_controller.camera.viewport.effectiveSize}');
-    // print('camera.gameSize ${_controller.camera.gameSize}');
-    // print('player.position ${_controller.player.position}');
-    // print('cameraOffset ${cameraOffset}');
-    // _controller.player.absolutePosition;
-
-    GameState.mapLocation = targetMapName;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => new Game(
-      playerData: this.gamePlayer.playerData,
-      fromSensor: curMapName,
-      cameraOffset: cameraOffset,
-    )));
   }
 
   Direction _getDirection() {
