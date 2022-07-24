@@ -98,7 +98,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       body: Center(
           child: bonfireTiledWidget
       ),
-    ) : bonfireTiledWidgetgit;
+    ) : bonfireTiledWidget;
   }
 
   void addComponent(GameComponent gameComponent) {
