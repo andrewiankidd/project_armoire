@@ -46,6 +46,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
 
   Widget _buildBonfire() {
     BonfireTiledWidget bonfireTiledWidget = BonfireTiledWidget(
+      key: ValueKey(this.mapName),
       showCollisionArea: kDebugMode,
       showFPS: true,
       joystick: Joystick(
@@ -73,7 +74,9 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
           mapName: this.mapName,
           refreshMap: (String tiledWorldMapName) {
             setState(() {
-              this.mapName = tiledWorldMapName;
+              if (this.mapName != tiledWorldMapName) {
+                this.mapName = tiledWorldMapName;
+              }
             });
           }
       ).tiledWorldMap,
@@ -88,14 +91,14 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       gameController: this._controller,
     );
 
-    return Scaffold(
+    return kDebugMode ? Scaffold(
       appBar: AppBar(
         title: Text(this.mapName),
       ),
       body: Center(
           child: bonfireTiledWidget
       ),
-    );
+    ) : bonfireTiledWidgetgit;
   }
 
   void addComponent(GameComponent gameComponent) {
