@@ -1,50 +1,62 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:project_armoire/net/net_player.dart';
+import 'package:project_armoire/game/game.dart';
 import '../main.dart';
 import '../util/exit_map_sensor.dart';
 
-class TiledMap {
-  final Function(String tiledWorldMapName) refreshMap;
-
-  final PlayerData playerData;
-  final String fromSensor;
-  final Vector2 cameraOffset;
-  final String mapName;
-
+class TiledMapData {
+  String mapName;
+  String fromMapName;
+  Map<String, Vector2> mapSensors;
   TiledWorldMap tiledWorldMap;
-  static Map<String, Vector2> mapSensors = {};
 
-  TiledMap({
-    BuildContext context,
-    this.playerData,
-    this.mapName,
-    this.fromSensor = null,
-    this.cameraOffset = null,
+  TiledMapData([
+    String this.mapName,
+    String this.fromMapName,
+    Map<String, Vector2> this.mapSensors,
+    TiledWorldMap this.tiledWorldMap,
+  ]) {
+    print('new TiledMapData created');
+  }
+}
+
+class TiledMapBuilder {
+  final Function(TiledMapData tiledMapData) refreshMap;
+
+  TiledMapData tiledMapData;
+
+  TiledMapBuilder({
     @required this.refreshMap
   }) {
-      this.tiledWorldMap = this.buildTiledWorldMap(context, this.mapName);
-      this.refreshMap(this.mapName);
+      //this.tiledMapData = this.buildTiledWorldMap(this.mapName, this.fromMapName);
+    print('new TiledMapBuilder');
   }
 
-  TiledWorldMap buildTiledWorldMap(BuildContext context, String mapName) {
-    TiledWorldMap newTiledWorldMap = TiledWorldMap(
+  Future<TiledMapData> buildTiledWorldMap([String mapName, String fromMapName = "spawn"]) async {
+
+    var n = TiledMapData();
+    n.mapName = mapName;
+    n.fromMapName = fromMapName;
+    n.tiledWorldMap = TiledWorldMap(
       'maps/${mapName}/data.json',
       forceTileSize: Size(tileSize, tileSize),
     );
+    n.mapSensors = {};
 
-    final snapshot = rootBundle.loadString('assets/images/' + newTiledWorldMap.path);
-    snapshot.then((value) {
+    // load map data
+    await rootBundle.loadString('assets/images/' + n.tiledWorldMap.path).then((value) {
 
+      // decode map data
       final decoded = json.decode(value);
       print('mapdata decoded successfully');
+
+      // create objectGroups
       final Iterable objectGroups = decoded['layers'].where((element) => element["type"] == "objectgroup");
       print('found ${objectGroups.length} objectGroups');
 
-      TiledMap.mapSensors = {};
+      // init sensors
       objectGroups.forEach((objectGroup) {
         print('objectGroup: ${objectGroup['name']}');
 
@@ -55,56 +67,30 @@ class TiledMap {
             String sensorTarget = object['name'].substring(object['name'].lastIndexOf(":") + 1, object['name'].length);
 
             // track sensor
-            TiledMap.mapSensors[sensorTarget] = Vector2(object['x'].toDouble(), object['y'].toDouble());
+            n.mapSensors[sensorTarget] = Vector2(object['x'].toDouble(), object['y'].toDouble());
 
             // register sensor
-            newTiledWorldMap.registerObject(
+            n.tiledWorldMap.registerObject(
               object['name'],
               (p) => ExitMapSensor(
                 object['name'],
                 p.position,
                 p.size,
-                (v) => this._exitMap(v, context),
+                (v) => this._exitMap(n.mapName, v),
               ),
             );
           }
         });
+        print('sensor init complete');
       });
-
-      print('map init');
+      print('map init complete');
     });
-
-    return newTiledWorldMap;
+    return n;
   }
 
-  void _exitMap(String value, BuildContext context) {
-    var curMapName = this.mapName;
-    var targetMapName = value.substring(value.lastIndexOf(":") + 1, value.length);
-    //
-    // print('exit map: ${curMapName} > ${targetMapName}');
-    //this.tiledWorldMap = TiledMap.buildTiledWorldMap(context, targetMapName);
-    this.refreshMap(targetMapName);
-
-    //
-
-    // var cameraOffset = _controller.camera.relativeOffset;
-    // // var cameraOffset = _controller.camera.position;// - _controller.camera.relativeOffset;
-    // // print('camera.position ${_controller.camera.position}');
-    // // print('camera.cameraRect ${_controller.camera.cameraRect}');
-    // // print('camera.relativeOffset ${_controller.camera.relativeOffset}');
-    // // print('camera.canvasSize ${_controller.camera.canvasSize}');
-    // // print('camera.viewport.canvasSize ${_controller.camera.viewport.canvasSize}');
-    // // print('camera.viewport.effectiveSize ${_controller.camera.viewport.effectiveSize}');
-    // // print('camera.gameSize ${_controller.camera.gameSize}');
-    // // print('player.position ${_controller.player.position}');
-    // // print('cameraOffset ${cameraOffset}');
-    // // _controller.player.absolutePosition;
-    //
-    // GameState.mapName = targetMapName;
-    // Navigator.push(context, MaterialPageRoute(builder: (_) => new Game(
-    //   playerData: this.gamePlayer.playerData,
-    //   fromSensor: curMapName,
-    //   cameraOffset: cameraOffset,
-    // )));
+  void _exitMap(String currentMapName, String exitMapSensorName) {
+    print('exitMap');
+    var targetMapName = exitMapSensorName.substring(exitMapSensorName.lastIndexOf(":") + 1, exitMapSensorName.length);
+    this.refreshMap(TiledMapData(targetMapName, currentMapName));
   }
 }

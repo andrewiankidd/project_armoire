@@ -79,6 +79,7 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     isWater = tileIsWater();
 
     // network broadcast movement data
+    // print('x: ${position.x}, y: ${position.y}');
     var data = PlayerMoveData(
       playerId: this.playerData.playerId,
       direction: event.directional,

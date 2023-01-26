@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:project_armoire/game/map.dart';
 import 'package:project_armoire/net/net_player.dart';
 import '../main.dart';
@@ -25,8 +27,10 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   final PlayerData playerData;
   final Vector2 cameraOffset;
 
-  TiledWorldMap tiledWorldMap;
   String mapName = 'biome1';
+  TiledMapData tiledMapData = TiledMapData('biome1', 'spawn');
+
+  var b;
 
   // player
   static final Map<String, RemotePlayer> remotePlayers = <String, RemotePlayer>{};
@@ -35,20 +39,69 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     _controller = GameController()..addListener(this);
+    b = this._buildBonfire();
     super.initState();
   }
 
   GameState({Key key, this.playerData, this.cameraOffset});
   @override
   Widget build(BuildContext context) {
-    return this._buildBonfire();
+
+    var child = new FutureBuilder<Widget>(
+      future: b,
+      initialData: new Text("Loading.."),
+      builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
+        switch (snapshot.connectionState) {
+          case ConnectionState.none:
+            return Text('none');
+          case ConnectionState.active:
+          case ConnectionState.waiting:
+            return Text('waiting');
+          case ConnectionState.done:
+            if (snapshot.hasError)
+              return Text('Error: ${snapshot.error}');
+            return snapshot.data; //snapshot.data;
+        // You can reach your snapshot.data['url'] in here
+        }
+        return null; // unreachable
+      }
+    );
+
+    return kDebugMode ? Scaffold(
+      appBar: AppBar(
+        title: Text(this.mapName),
+      ),
+      body: Center(
+          child: child
+      ),
+    ) : child;
   }
 
-  Widget _buildBonfire() {
-    BonfireTiledWidget bonfireTiledWidget = BonfireTiledWidget(
-      key: ValueKey(this.mapName),
+  Future<Widget> _buildBonfire() async {
+
+    tiledMapData = await TiledMapBuilder(
+        refreshMap: (TiledMapData _tiledMapData) {
+          setState(() {
+            print('tiledMapData:' );
+            print('->:mapName: ' + _tiledMapData.mapName);
+            print('->:fromMapName: ' + _tiledMapData.fromMapName);
+            this.tiledMapData = _tiledMapData;
+            this.mapName = _tiledMapData.mapName;
+            b = _buildBonfire();
+          });
+        }
+    ).buildTiledWorldMap(this.tiledMapData.mapName, this.tiledMapData.fromMapName);
+
+    //todo i have no idea
+    if (this.tiledMapData.mapSensors.containsKey(this.tiledMapData.fromMapName)) {
+      print('Setting player location: ' + this.tiledMapData.mapSensors[this.tiledMapData.fromMapName].toString());
+      this.gamePlayer.playerData.playerMoveData.position = this.tiledMapData.mapSensors[this.tiledMapData.fromMapName];
+      _controller.player.moveTo(this.tiledMapData.mapSensors[this.tiledMapData.fromMapName]);
+    }
+
+    return BonfireTiledWidget(
       showCollisionArea: kDebugMode,
-      showFPS: true,
+      showFPS: kDebugMode,
       joystick: Joystick(
         keyboardConfig: KeyboardConfig(
           enable: true,
@@ -68,18 +121,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       ),
       // // add to component
       player: this._initGamePlayer(),
-      map: TiledMap(
-          context: context,
-          playerData: this.playerData,
-          mapName: this.mapName,
-          refreshMap: (String tiledWorldMapName) {
-            setState(() {
-              if (this.mapName != tiledWorldMapName) {
-                this.mapName = tiledWorldMapName;
-              }
-            });
-          }
-      ).tiledWorldMap,
+      map: tiledMapData.tiledWorldMap,
       colorFilter: GameColorFilter(color: Color.fromRGBO(255, 112, 214, 0.66), blendMode: BlendMode.hue),
       cameraConfig: CameraConfig(
         moveOnlyMapArea: true,
@@ -90,15 +132,6 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       progress: SizedBox.shrink(),
       gameController: this._controller,
     );
-
-    return kDebugMode ? Scaffold(
-      appBar: AppBar(
-        title: Text(this.mapName),
-      ),
-      body: Center(
-          child: bonfireTiledWidget
-      ),
-    ) : bonfireTiledWidget;
   }
 
   void addComponent(GameComponent gameComponent) {
@@ -153,6 +186,13 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
 
     //todo rewrite to make better
 
+    setState(() {
+      // set player spawn
+
+
+    });
+
+
     var val = this._getDirectionalOffset(playerMoveData);
     /*
     if (this.fromSensor.isNotEmpty && mapSensors.containsKey(this.fromSensor)) {
@@ -165,17 +205,17 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       //var val = (mapSensors[this.fromSensor] + (this.cameraOffset/2)) + this._getDirectionalOffset(playerMoveData);
       var val = mapSensors[this.fromSensor] + this._getDirectionalOffset(playerMoveData);
 
-      // if (this.cameraOffset != null) {
-      //   if (playerMoveData.direction == JoystickMoveDirectional.MOVE_RIGHT) {
-      //     val += this.cameraOffset;
-      //   }
-      //   else if (playerMoveData.direction == JoystickMoveDirectional.MOVE_LEFT) {
-      //     val += this.cameraOffset;
-      //   } else {
-      //     val -= this.cameraOffset;
-      //
-      //   }
-      // }
+      if (this.cameraOffset != null) {
+        if (playerMoveData.direction == JoystickMoveDirectional.MOVE_RIGHT) {
+          val += this.cameraOffset;
+        }
+        else if (playerMoveData.direction == JoystickMoveDirectional.MOVE_LEFT) {
+          val += this.cameraOffset;
+        } else {
+          val -= this.cameraOffset;
+
+        }
+      }
 
       print('val: ${val}}');
       return val;
