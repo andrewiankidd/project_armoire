@@ -40,6 +40,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     WidgetsBinding.instance.addObserver(this);
     _controller = GameController()..addListener(this);
     b = this._buildBonfire();
+    print('nutsack');
     super.initState();
   }
 
@@ -67,6 +68,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       }
     );
 
+    print('ballsacks');
     return kDebugMode ? Scaffold(
       appBar: AppBar(
         title: Text(this.mapName),
@@ -92,14 +94,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
         }
     ).buildTiledWorldMap(this.tiledMapData.mapName, this.tiledMapData.fromMapName);
 
-    //todo i have no idea
-    if (this.tiledMapData.mapSensors.containsKey(this.tiledMapData.fromMapName)) {
-      print('Setting player location: ' + this.tiledMapData.mapSensors[this.tiledMapData.fromMapName].toString());
-      this.gamePlayer.playerData.playerMoveData.position = this.tiledMapData.mapSensors[this.tiledMapData.fromMapName];
-      _controller.player.moveTo(this.tiledMapData.mapSensors[this.tiledMapData.fromMapName]);
-    }
-
-    return BonfireTiledWidget(
+    var x = BonfireTiledWidget(
       showCollisionArea: kDebugMode,
       showFPS: kDebugMode,
       joystick: Joystick(
@@ -132,6 +127,14 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       progress: SizedBox.shrink(),
       gameController: this._controller,
     );
+
+    print('beezits');
+    if (this.tiledMapData.mapSensors.containsKey(this.tiledMapData.fromMapName)) {
+      print('Setting player location: ' + this.tiledMapData.mapSensors[this.tiledMapData.fromMapName].toString());
+      x.player.position = this.tiledMapData.mapSensors[this.tiledMapData.fromMapName];
+    }
+    print('cheezits');
+    return x;
   }
 
   void addComponent(GameComponent gameComponent) {
@@ -186,11 +189,6 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
 
     //todo rewrite to make better
 
-    setState(() {
-      // set player spawn
-
-
-    });
 
 
     var val = this._getDirectionalOffset(playerMoveData);
