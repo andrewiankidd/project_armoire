@@ -30,7 +30,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   final PlayerData playerData;
   final Vector2 cameraOffset;
 
-  var b;
+  Future<Widget> bonfire;
 
   // player
   static final Map<String, RemotePlayer> remotePlayers = <String, RemotePlayer>{};
@@ -47,15 +47,20 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
             playerMoveData: PlayerMoveData(
                 playerId: this.playerData.playerId,
                 direction: this.playerData.playerMoveData.direction,
-                position: _getPlayerPosition(this.playerData.playerMoveData)
+                position: this.test(this.playerData.playerMoveData.position)
             )
         ),
         SpriteSheetHero.current
     );
 
-    b = this._buildBonfire();
-    print('nutsack');
+    this.bonfire = this._buildBonfire();
     super.initState();
+  }
+
+  Vector2 test(Vector2 input) {
+    return (input == Vector2.zero() && this.tiledMapData.fromMapName == "spawn")
+        ? Vector2(tileSize * 22, tileSize * 9)
+        : input;
   }
 
   GameState({Key key, this.playerData, this.cameraOffset});
@@ -63,7 +68,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   Widget build(BuildContext context) {
 
     var child = new FutureBuilder<Widget>(
-      future: b,
+      future: this.bonfire,
       initialData: new Text("Loading.."),
       builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
         switch (snapshot.connectionState) {
@@ -81,8 +86,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
         return null; // unreachable
       }
     );
-
-    print('ballsacks');
+    
     return kDebugMode ? Scaffold(
       appBar: AppBar(
         title: Text(this.mapName),
@@ -103,7 +107,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
             print('->:fromMapName: ' + _tiledMapData.fromMapName);
             this.tiledMapData = _tiledMapData;
             this.mapName = _tiledMapData.mapName;
-            b = _buildBonfire();
+            this.bonfire = _buildBonfire();
           });
         }
     ).buildTiledWorldMap(this.tiledMapData.mapName, this.tiledMapData.fromMapName);
@@ -142,12 +146,10 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       gameController: this._controller,
     );
 
-    print('beezits');
     if (this.tiledMapData.mapSensors.containsKey(this.tiledMapData.fromMapName)) {
       print('Setting player location: ' + this.tiledMapData.mapSensors[this.tiledMapData.fromMapName].toString());
       x.player.position = (this.tiledMapData.mapSensors[this.tiledMapData.fromMapName] * 2.5) + _getDirectionalOffset(gamePlayer.currentDirectional);
     }
-    print('cheezits');
     return x;
   }
 
@@ -182,44 +184,6 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
         return Vector2.zero();
     }
   }
-
-  Vector2 _getPlayerPosition(PlayerMoveData playerMoveData) {
-    switch (playerMoveData.direction) {
-      case JoystickMoveDirectional.MOVE_LEFT:
-        return Vector2(tileSize * 2, tileSize * 10);
-        break;
-      case JoystickMoveDirectional.MOVE_RIGHT:
-        return Vector2(tileSize * 27, tileSize * 12);
-        break;
-      case JoystickMoveDirectional.MOVE_UP:
-        return Vector2.zero();
-        break;
-      case JoystickMoveDirectional.MOVE_DOWN:
-        return Vector2.zero();
-        break;
-      default:
-        return Vector2.zero();
-    }
-  }
-
-  // Direction _getDirection() {
-  //   switch (this.playerData.playerMoveData.direction) {
-  //     case JoystickMoveDirectional.MOVE_LEFT:
-  //       return Direction.right;
-  //       break;
-  //     case JoystickMoveDirectional.MOVE_RIGHT:
-  //       return Direction.left;
-  //       break;
-  //     case JoystickMoveDirectional.MOVE_UP:
-  //       return Direction.right;
-  //       break;
-  //     case JoystickMoveDirectional.MOVE_DOWN:
-  //       return Direction.right;
-  //       break;
-  //     default:
-  //       return Direction.right;
-  //   }
-  // }
 
   @override
   void changeCountLiveEnemies(int count) {

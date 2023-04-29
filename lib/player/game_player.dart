@@ -58,10 +58,10 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     this.setupCollision(
       CollisionConfig(
         collisions: [
-          // CollisionArea.rectangle(
-          //   size: Vector2(sizePlayer / 2, sizePlayer * 0.5),
-          //   align: Vector2(sizePlayer * 0.25, sizePlayer * 0.5),
-          // ),
+          CollisionArea.rectangle(
+            size: Vector2(sizePlayer / 2, sizePlayer * 0.5),
+            align: Vector2(sizePlayer * 0.25, sizePlayer * 0.5),
+          ),
         ],
       ),
     );
