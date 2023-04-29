@@ -21,14 +21,14 @@ class Game extends StatefulWidget {
 }
 
 class GameState extends State<Game> with WidgetsBindingObserver implements GameListener {
-  GameController _controller;
+  String mapName = 'biome1';
+  TiledMapData tiledMapData = TiledMapData('biome1', 'spawn');
+
   GamePlayer gamePlayer;
+  GameController _controller;
 
   final PlayerData playerData;
   final Vector2 cameraOffset;
-
-  String mapName = 'biome1';
-  TiledMapData tiledMapData = TiledMapData('biome1', 'spawn');
 
   var b;
 
@@ -39,6 +39,20 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     _controller = GameController()..addListener(this);
+
+    gamePlayer =  new GamePlayer(
+        PlayerData(
+            playerId: this.playerData.playerId,
+            playerUsername: this.playerData.playerUsername,
+            playerMoveData: PlayerMoveData(
+                playerId: this.playerData.playerId,
+                direction: this.playerData.playerMoveData.direction,
+                position: _getPlayerPosition(this.playerData.playerMoveData)
+            )
+        ),
+        SpriteSheetHero.current
+    );
+
     b = this._buildBonfire();
     print('nutsack');
     super.initState();
@@ -115,7 +129,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
         ],
       ),
       // // add to component
-      player: this._initGamePlayer(),
+      player: gamePlayer,
       map: tiledMapData.tiledWorldMap,
       colorFilter: GameColorFilter(color: Color.fromRGBO(255, 112, 214, 0.66), blendMode: BlendMode.hue),
       cameraConfig: CameraConfig(
@@ -131,7 +145,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     print('beezits');
     if (this.tiledMapData.mapSensors.containsKey(this.tiledMapData.fromMapName)) {
       print('Setting player location: ' + this.tiledMapData.mapSensors[this.tiledMapData.fromMapName].toString());
-      x.player.position = this.tiledMapData.mapSensors[this.tiledMapData.fromMapName];
+      x.player.position = (this.tiledMapData.mapSensors[this.tiledMapData.fromMapName] * 2.5) + _getDirectionalOffset(gamePlayer.currentDirectional);
     }
     print('cheezits');
     return x;
@@ -150,24 +164,8 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     remotePlayer.moveRemotePlayer(playerMoveData);
   }
 
-  GamePlayer _initGamePlayer() {
-    this.gamePlayer = new GamePlayer(
-        PlayerData(
-            playerId: this.playerData.playerId,
-            playerUsername: this.playerData.playerUsername,
-            playerMoveData: PlayerMoveData(
-                playerId: this.playerData.playerId,
-                direction: this.playerData.playerMoveData.direction,
-                position: _getPlayerPosition(this.playerData.playerMoveData)
-            )
-        ),
-        SpriteSheetHero.current
-    );
-    return this.gamePlayer;
-  }
-
-  Vector2 _getDirectionalOffset(PlayerMoveData playerMoveData) {
-    switch (playerMoveData.direction) {
+  Vector2 _getDirectionalOffset(JoystickMoveDirectional playerMoveData) {
+    switch (playerMoveData) {
       case JoystickMoveDirectional.MOVE_LEFT:
         return Vector2(-tileSize, 0);
         break;
@@ -186,39 +184,6 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   }
 
   Vector2 _getPlayerPosition(PlayerMoveData playerMoveData) {
-
-    //todo rewrite to make better
-
-
-
-    var val = this._getDirectionalOffset(playerMoveData);
-    /*
-    if (this.fromSensor.isNotEmpty && mapSensors.containsKey(this.fromSensor)) {
-      print('getting location of sensor: ${this.fromSensor}}');
-      print('sensorOffset: ${mapSensors[this.fromSensor]}}');
-      print('playerLocation: ${playerMoveData.position}}');
-      print('cameraOffset: ${this.cameraOffset}}');
-      print('direction: ${playerMoveData.direction}}');
-      print('directionalOffset: ${this._getDirectionalOffset(playerMoveData)}}');
-      //var val = (mapSensors[this.fromSensor] + (this.cameraOffset/2)) + this._getDirectionalOffset(playerMoveData);
-      var val = mapSensors[this.fromSensor] + this._getDirectionalOffset(playerMoveData);
-
-      if (this.cameraOffset != null) {
-        if (playerMoveData.direction == JoystickMoveDirectional.MOVE_RIGHT) {
-          val += this.cameraOffset;
-        }
-        else if (playerMoveData.direction == JoystickMoveDirectional.MOVE_LEFT) {
-          val += this.cameraOffset;
-        } else {
-          val -= this.cameraOffset;
-
-        }
-      }
-
-      print('val: ${val}}');
-      return val;
-    }
-    */
     switch (playerMoveData.direction) {
       case JoystickMoveDirectional.MOVE_LEFT:
         return Vector2(tileSize * 2, tileSize * 10);
@@ -237,24 +202,24 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     }
   }
 
-  Direction _getDirection() {
-    switch (this.playerData.playerMoveData.direction) {
-      case JoystickMoveDirectional.MOVE_LEFT:
-        return Direction.right;
-        break;
-      case JoystickMoveDirectional.MOVE_RIGHT:
-        return Direction.left;
-        break;
-      case JoystickMoveDirectional.MOVE_UP:
-        return Direction.right;
-        break;
-      case JoystickMoveDirectional.MOVE_DOWN:
-        return Direction.right;
-        break;
-      default:
-        return Direction.right;
-    }
-  }
+  // Direction _getDirection() {
+  //   switch (this.playerData.playerMoveData.direction) {
+  //     case JoystickMoveDirectional.MOVE_LEFT:
+  //       return Direction.right;
+  //       break;
+  //     case JoystickMoveDirectional.MOVE_RIGHT:
+  //       return Direction.left;
+  //       break;
+  //     case JoystickMoveDirectional.MOVE_UP:
+  //       return Direction.right;
+  //       break;
+  //     case JoystickMoveDirectional.MOVE_DOWN:
+  //       return Direction.right;
+  //       break;
+  //     default:
+  //       return Direction.right;
+  //   }
+  // }
 
   @override
   void changeCountLiveEnemies(int count) {
