@@ -27,7 +27,7 @@ class NetMessage {
 
 class Net {
 
-  void init() async {
+  Future<void> init() async {
     developer.log('pubnub init', name: 'project_armoire.Net');
 
     // Create PubNub instance with default keyset.
@@ -51,14 +51,19 @@ class Net {
   }
 
   void handleMessage(Envelope envelope) {
-    developer.log('handleMessage: ${developer.inspect(envelope.content)}', name: 'project_armoire.Net');
-    NetMessage netMessage = NetMessage.fromJson(envelope.content);
-    switch(envelope.channel) {
-      case "player":
+    try {
+      developer.log('handleMessage: ${developer.inspect(envelope.content)}', name: 'project_armoire.Net');
+      NetMessage netMessage = NetMessage.fromJson(envelope.content);
+      switch(envelope.channel) {
+        case "player":
           NetPlayer().handleMessage(netMessage);
-        break;
-      default:
-        throw "unknown message type ${envelope.channel}";
+          break;
+        default:
+          developer.log('ignoring message on unhandled channel: ${envelope.channel}', name: 'project_armoire.Net');
+      }
+    } catch (e, stackTrace) {
+      // never let one malformed message tear down the subscription stream
+      developer.log('failed to handle message: $e', name: 'project_armoire.Net', error: e, stackTrace: stackTrace);
     }
   }
 

@@ -32,7 +32,6 @@
 /build/
 
 # Web related
-lib/generated_plugin_registrant.dart
 
 # Symbolication related
 app.*.symbols
@@ -45,3 +44,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /*.env
+
+# GitHub Pages site — these are assembled at deploy time, not committed
+/.github/pages/game/
+/.github/pages/docs/
+/.github/pages/CHANGELOG.md
+/.github/pages/README.md

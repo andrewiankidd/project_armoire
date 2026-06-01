@@ -11,7 +11,17 @@ class Config {
 
   Future init() async {
     developer.log('init', name: 'project_armoire.Config');
-    Config.deviceId = (await PlatformDeviceId.getDeviceId).trim();
+
+    // platform_device_id has no web implementation and can throw / return null,
+    // so guard it and fall back to a generated id
+    try {
+      Config.deviceId = (await PlatformDeviceId.getDeviceId)?.trim();
+    } catch (e) {
+      developer.log('could not resolve device id: $e', name: 'project_armoire.Config');
+    }
+    if (Config.deviceId == null || Config.deviceId.isEmpty) {
+      Config.deviceId = 'device-${DateTime.now().millisecondsSinceEpoch}';
+    }
 
     if (!kIsWeb && File(".env").existsSync()){
       return dotenv.load(fileName: ".env");

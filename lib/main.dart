@@ -19,19 +19,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SpriteSheetHero.load();
   if (!kIsWeb) {
-    await Flame.device.setLandscape(); //TODO Comment when running for web
-    await Flame.device.fullScreen(); //TODO Comment when running for web
+    await Flame.device.setLandscape();
+    await Flame.device.fullScreen();
   }
   await Config().init();
   await Net().init();
   runApp(MyApp());
-}
-
-enum ShowInEnum {
-  left,
-  right,
-  top,
-  bottom,
 }
 
 class MyApp extends StatelessWidget {
@@ -46,7 +39,6 @@ class MyApp extends StatelessWidget {
       ),
       home: LayoutBuilder(builder: (context, constraints) {
         tileSize = max(constraints.maxHeight, constraints.maxWidth) / 30;
-        print(tileSize);
         return MainMenu();
       }),
     );

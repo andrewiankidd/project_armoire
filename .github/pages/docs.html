@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docs — Project Armoire</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --background: #1b1320;
+            --foreground: rgba(27, 19, 32, 0.75);
+            --highlight: #ff70d6;
+            --text: #ece4f0;
+            --primary: #fff;
+            --secondary: #000;
+            --muted: #9a86a6;
+            --card: #271a2e;
+            --border: #3d2a47;
+            --radius: 5px;
+        }
+        body.light {
+            --background: #f5eef7;
+            --foreground: rgba(230, 216, 236, 0.75);
+            --highlight: #c0297d;
+            --text: #2a1a2e;
+            --primary: #1a0a1e;
+            --secondary: #fff;
+            --muted: #6a5a70;
+            --card: #e6d8ec;
+            --border: #c8b0d0;
+        }
+        @keyframes grain {
+            0%, to { transform: translate(0) }
+            10% { transform: translate(-5%, -10%) }
+            20% { transform: translate(-15%, 5%) }
+            30% { transform: translate(7%, -25%) }
+            40% { transform: translate(-5%, 25%) }
+            50% { transform: translate(-15%, 10%) }
+            60% { transform: translate(15%) }
+            70% { transform: translateY(15%) }
+            80% { transform: translate(3%, 35%) }
+            90% { transform: translate(-10%, 10%) }
+        }
+        body:before {
+            content: "";
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+            opacity: .04;
+            z-index: 9999;
+            pointer-events: none;
+            animation: grain 8s steps(10) infinite;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: var(--background);
+            color: var(--text);
+            font-family: "Montserrat", sans-serif;
+            min-height: 100vh;
+        }
+        a { color: var(--highlight); text-decoration: none; transition: 0.3s; font-weight: 600; }
+        a:hover { color: var(--primary); }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px;
+        }
+        header h2 { color: var(--text); margin: 0; font-size: 16pt; text-transform: uppercase; }
+        header nav a {
+            color: var(--primary);
+            margin-left: 20px;
+            text-transform: uppercase;
+            font-size: 12pt;
+        }
+        header nav a:hover { border-bottom: 1px solid var(--highlight); color: var(--highlight); }
+
+        .wiki-layout {
+            display: flex;
+            width: 90%;
+            max-width: 1100px;
+            margin: 0 auto 40px;
+            gap: 20px;
+        }
+        @media (max-width: 800px) {
+            .wiki-layout { flex-direction: column; width: 95%; }
+            .sidebar { order: -1; }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: var(--foreground);
+            border-radius: var(--radius);
+            padding: 20px;
+            align-self: flex-start;
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-bottom: 0.8rem;
+        }
+        .sidebar ul { list-style: none; }
+        .sidebar li { margin-bottom: 0.4rem; }
+        .sidebar a {
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.3rem 0.5rem;
+            display: block;
+            border-radius: 3px;
+            transition: background 0.15s;
+        }
+        .sidebar a:hover { background: var(--card); color: var(--highlight); }
+        .sidebar a.active { background: var(--highlight); color: var(--background); }
+        .sidebar .nav-section {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-top: 1rem;
+            margin-bottom: 0.3rem;
+            padding: 0 0.5rem;
+            font-weight: 700;
+        }
+
+        /* Content */
+        .wiki-content {
+            flex: 1;
+            min-width: 0;
+            background: var(--foreground);
+            border-radius: var(--radius);
+            padding: 40px;
+        }
+        .wiki-content h1 {
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+        }
+        .wiki-content h2 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--highlight);
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .wiki-content h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .wiki-content p {
+            line-height: 1.7;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+        .wiki-content ul, .wiki-content ol {
+            margin: 0.5rem 0 1rem 1.5rem;
+            line-height: 1.7;
+        }
+        .wiki-content li { margin-bottom: 0.3rem; }
+        .wiki-content strong { color: var(--primary); }
+        .wiki-content code {
+            background: var(--card);
+            padding: 0.15em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .wiki-content pre {
+            background: var(--card);
+            padding: 1rem;
+            border-radius: var(--radius);
+            overflow-x: auto;
+            margin: 1rem 0;
+            border: 1px solid var(--border);
+        }
+        .wiki-content pre code { background: none; padding: 0; }
+        .wiki-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .wiki-content th, .wiki-content td {
+            text-align: left;
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .wiki-content th {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+        }
+        .wiki-content blockquote {
+            border-left: 3px solid var(--highlight);
+            padding: 0.5rem 1rem;
+            margin: 1rem 0;
+            color: var(--muted);
+            background: var(--card);
+            border-radius: 0 var(--radius) var(--radius) 0;
+        }
+        .wiki-content img { max-width: 100%; border-radius: var(--radius); }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Project Armoire</h2>
+        <nav>
+            <a href="javascript:toggleLightMode();">🌗</a>
+            <a href="./">Home</a>
+            <a href="changelog.html">Changelog</a>
+            <a href="docs.html">Docs</a>
+        </nav>
+    </header>
+
+    <div class="wiki-layout">
+        <aside class="sidebar">
+            <h3>Docs</h3>
+            <ul id="nav-list"></ul>
+        </aside>
+        <main class="wiki-content" id="content" role="main">
+            <p>Loading...</p>
+        </main>
+    </div>
+
+    <script>
+        // Wiki page registry — drives the sidebar AND slug → file resolution.
+        // Sections: { section: "Label", pages: [ [slug, label, path], ... ] }
+        // Pages:    [slug, label, path]   — path relative to docs/, no .md
+        var sections = [
+            { section: "", pages: [
+                ["index", "Home"],
+            ]},
+            { section: "Playing", pages: [
+                ["controls", "Controls", "playing/controls"],
+                ["gameplay", "Gameplay", "playing/gameplay"],
+            ]},
+            { section: "Multiplayer", pages: [
+                ["multiplayer", "Multiplayer", "multiplayer"],
+            ]},
+            { section: "Development", pages: [
+                ["architecture", "Architecture", "development/architecture"],
+                ["build", "Build & CI", "development/build"],
+            ]},
+        ];
+
+        var slugToPath = {};
+        var pathToSlug = {};
+        sections.forEach(function(s) {
+            s.pages.forEach(function(p) {
+                var filePath = p[2] || p[0];
+                slugToPath[p[0]] = filePath;
+                pathToSlug[filePath] = p[0];
+            });
+        });
+
+        function toggleLightMode() {
+            document.body.classList.toggle("light");
+            localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+        }
+        if (localStorage.getItem("theme") === "light") {
+            document.body.classList.add("light");
+        }
+
+        // Build sidebar nav.
+        var navList = document.getElementById("nav-list");
+        sections.forEach(function(s) {
+            if (s.section) {
+                var heading = document.createElement("li");
+                heading.className = "nav-section";
+                heading.textContent = s.section;
+                navList.appendChild(heading);
+            }
+            s.pages.forEach(function(p) {
+                var li = document.createElement("li");
+                var a = document.createElement("a");
+                a.href = "#" + p[0];
+                a.dataset.slug = p[0];
+                a.onclick = (function(slug) {
+                    return function(e) { e.preventDefault(); loadPage(slug); };
+                })(p[0]);
+                a.textContent = p[1];
+                li.appendChild(a);
+                navList.appendChild(li);
+            });
+        });
+
+        // Resolve a markdown link href (possibly relative) to a docs/ path.
+        function resolveLink(href, currentPath) {
+            var clean = href.replace(/\.md(#.*)?$/, "");
+            var base = currentPath.indexOf("/") !== -1
+                ? currentPath.substring(0, currentPath.lastIndexOf("/"))
+                : "";
+            var parts = (base ? base + "/" + clean : clean).split("/");
+            var resolved = [];
+            parts.forEach(function(p) {
+                if (p === "." || p === "") return;
+                if (p === "..") { resolved.pop(); return; }
+                resolved.push(p);
+            });
+            return resolved.join("/");
+        }
+
+        function loadPage(slug) {
+            var currentPath = slugToPath[slug] || slug;
+            var url = "docs/" + currentPath + ".md";
+            fetch(url)
+                .then(function(r) {
+                    if (!r.ok) throw new Error("Not found");
+                    return r.text();
+                })
+                .then(function(md) {
+                    // Rewrite intra-wiki .md links to hash-routed navigation.
+                    md = md.replace(/\[([^\]]+)\]\(([^)]+\.md(?:#[^)]*)?)\)/g, function(match, label, href) {
+                        var resolved = resolveLink(href, currentPath);
+                        var targetSlug = pathToSlug[resolved];
+                        if (targetSlug) {
+                            return '<a href="#' + targetSlug + '" onclick="event.preventDefault();loadPage(\'' + targetSlug + '\')">' + label + '</a>';
+                        }
+                        return match;
+                    });
+                    // Rewrite local image paths to be relative to docs/.
+                    md = md.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, src) {
+                        if (src.startsWith("http") || src.startsWith("/")) return match;
+                        var base = currentPath.indexOf("/") !== -1
+                            ? currentPath.substring(0, currentPath.lastIndexOf("/"))
+                            : "";
+                        var fullSrc = base ? "docs/" + base + "/" + src : "docs/" + src;
+                        return "![" + alt + "](" + fullSrc + ")";
+                    });
+                    document.getElementById("content").innerHTML = marked.parse(md);
+                    document.querySelectorAll(".sidebar a").forEach(function(a) {
+                        a.classList.toggle("active", a.dataset && a.dataset.slug === slug);
+                    });
+                    window.location.hash = slug;
+                    window.scrollTo(0, 0);
+                })
+                .catch(function() {
+                    document.getElementById("content").innerHTML = "<h1>Not Found</h1><p>Page not available yet.</p>";
+                });
+        }
+
+        var initial = window.location.hash.replace("#", "") || "index";
+        loadPage(initial);
+
+        window.addEventListener("hashchange", function() {
+            var slug = window.location.hash.replace("#", "") || "index";
+            loadPage(slug);
+        });
+    </script>
+</body>
+</html>
