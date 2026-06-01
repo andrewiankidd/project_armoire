@@ -53,7 +53,7 @@
                 {
                  "height":10,
                  "id":9,
-                 "name":"sensorHouseDoor:biome2",
+                 "name":"sensorHouseDoor:biome2:left",
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -64,7 +64,7 @@
                 {
                  "height":140.342260025505,
                  "id":1,
-                 "name":"sensorRight:biome2",
+                 "name":"sensorRight:biome2:left",
                  "rotation":0,
                  "type":"",
                  "visible":true,

@@ -53,7 +53,7 @@
                 {
                  "height":110.744970534444,
                  "id":1,
-                 "name":"sensorLeft",
+                 "name":"sensorLeft:biome1:right",
                  "rotation":0,
                  "type":"",
                  "visible":true,

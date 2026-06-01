@@ -2,9 +2,14 @@ import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../net/net_player.dart';
+import '../util/game_logic.dart';
 class RemotePlayer extends SimpleEnemy with ObjectCollision {
   static const REDUCTION_SPEED_DIAGONAL = 0.7;
   JoystickMoveDirectional currentMove = JoystickMoveDirectional.IDLE;
+
+  // stop dead-reckoning if we stop hearing from this player
+  double _timeSinceLastMove = 0;
+  static const double _moveTimeoutSeconds = 0.5;
 
   final PlayerData playerData;
 
@@ -65,12 +70,15 @@ class RemotePlayer extends SimpleEnemy with ObjectCollision {
 
   void moveRemotePlayer(PlayerMoveData playerMoveData){
 
+    // fresh update, reset the dead-reckoning timeout
+    _timeSinceLastMove = 0;
+
     // set intended direction
     // game will pick it up in next tick of update method
     this.currentMove = playerMoveData.direction;
 
     // de-sync check
-    if (playerMoveData.position.distanceTo(position) > (tileSize * 0.5)) {
+    if (shouldSnapToPosition(playerMoveData.position, position, tileSize * 0.5)) {
       position = playerMoveData.position;
     }
   }
@@ -129,6 +137,11 @@ class RemotePlayer extends SimpleEnemy with ObjectCollision {
 
   @override
   void update(double dt) {
+    // if we haven't heard from this player recently, stop moving them
+    _timeSinceLastMove += dt;
+    if (_timeSinceLastMove >= _moveTimeoutSeconds) {
+      currentMove = JoystickMoveDirectional.IDLE;
+    }
     _moveRemotePlayer(currentMove);
     super.update(dt);
   }

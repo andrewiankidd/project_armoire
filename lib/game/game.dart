@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:math';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
@@ -11,20 +12,23 @@ import '../player/remote_player.dart';
 import '../player/sprite_sheet_hero.dart';
 import '../util/exit_map_sensor.dart';
 import '../util/extensions.dart';
+import '../util/game_logic.dart';
+import '../util/show_in_enum.dart';
 
 class Game extends StatefulWidget {
-  const Game({Key key, ShowInEnum showInEnum}) : super(key: key);
+  final ShowInEnum showInEnum;
+  const Game({Key key, this.showInEnum = ShowInEnum.left}) : super(key: key);
 
   @override
-  GameState createState({key, showInEnum}) => GameState();
+  GameState createState() => GameState();
 }
 
 class GameState extends State<Game> with WidgetsBindingObserver implements GameListener {
   GameController _controller;
 
-  final ShowInEnum showInEnum;
   static String mapLocation = 'biome1';
   static TiledWorldMap mapData;
+  bool _mapInitialized = false;
 
   @override
   void initState() {
@@ -33,36 +37,33 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     super.initState();
   }
 
-  GameState({Key key, this.showInEnum = ShowInEnum.left});
   @override
   Widget build(BuildContext context) {
-    print('map init');
-    GameState.mapData = this._initMap(context);
+    // build() can run many times; only init the map + object sensors once
+    if (!_mapInitialized) {
+      _mapInitialized = true;
+      GameState.mapData = this._initMap(context);
 
-    print('object loader init');
-    rootBundle.loadString('assets/images/' + GameState.mapData.path).then((String result){
-      final decoded = json.decode(result);
-      print('mapdata decoded successfully');
+      rootBundle.loadString('assets/images/' + GameState.mapData.path).then((String result){
+        final decoded = json.decode(result);
 
-      final Iterable objectGroups = decoded['layers'].where((element) => element["type"] == "objectgroup");
-      print('found ${objectGroups.length} objectGroups');
+        final Iterable objectGroups = decoded['layers'].where((element) => element["type"] == "objectgroup");
 
-      objectGroups.forEach((objectGroup) {
-
-        print('objectGroup: ${objectGroup['name']}');
-        objectGroup['objects'].forEach((object) {
-          GameState.mapData.registerObject(
-            object['name'],
-            (p) => ExitMapSensor(
+        objectGroups.forEach((objectGroup) {
+          objectGroup['objects'].forEach((object) {
+            GameState.mapData.registerObject(
               object['name'],
-              p.position,
-              p.size,
-              (v) => _exitMap(v, context),
-           ),
-          );
+              (p) => ExitMapSensor(
+                object['name'],
+                p.position,
+                p.size,
+                (v) => _exitMap(v, context),
+             ),
+            );
+          });
         });
       });
-    });
+    }
 
     return this._buildInterface(context);
   }
@@ -76,8 +77,10 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   }
 
   void moveComponent(GameComponent gameComponent, PlayerMoveData playerMoveData) {
-    var remotePlayer = this._controller.livingEnemies.first as RemotePlayer;
-    remotePlayer.moveRemotePlayer(playerMoveData);
+    // move the player the message is actually for, not just the first enemy
+    if (gameComponent is RemotePlayer) {
+      gameComponent.moveRemotePlayer(playerMoveData);
+    }
   }
 
   TiledWorldMap _initMap(BuildContext context) {
@@ -90,7 +93,7 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   Widget _buildInterface(BuildContext context) {
     return BonfireTiledWidget(
       showCollisionArea: kDebugMode,
-      showFPS: true,
+      showFPS: kDebugMode,
       joystick: Joystick(
         keyboardConfig: KeyboardConfig(
           enable: true,
@@ -127,46 +130,34 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
   }
 
   Vector2 _getInitPosition() {
-    switch (showInEnum) {
-      case ShowInEnum.left:
-        return Vector2(tileSize * 2, tileSize * 10);
-        break;
-      case ShowInEnum.right:
-        return Vector2(tileSize * 27, tileSize * 12);
-        break;
-      case ShowInEnum.top:
-        return Vector2.zero();
-        break;
-      case ShowInEnum.bottom:
-        return Vector2.zero();
-        break;
-      default:
-        return Vector2.zero();
-    }
+    return initPositionFor(widget.showInEnum, tileSize);
   }
 
   void _exitMap(String value, BuildContext context) {
-    var mapName = value.substring(value.lastIndexOf(":") + 1, value.length);
-    GameState.mapLocation = mapName;
+    final target = parseExit(value);
+    if (target == null) {
+      developer.log('exit sensor "$value" has no target biome; ignoring', name: 'project_armoire.Game');
+      return;
+    }
+    GameState.mapLocation = target.biome;
+    // reuse the global key so networking (gameStateKey.currentState) keeps
+    // working after a map transition
     context.goTo(Game(
-      showInEnum: ShowInEnum.left,
+      key: gameStateKey,
+      showInEnum: target.entrySide,
     ));
   }
 
   Direction _getDirection() {
-    switch (showInEnum) {
+    switch (widget.showInEnum) {
       case ShowInEnum.left:
         return Direction.right;
-        break;
       case ShowInEnum.right:
         return Direction.left;
-        break;
       case ShowInEnum.top:
         return Direction.right;
-        break;
       case ShowInEnum.bottom:
         return Direction.right;
-        break;
       default:
         return Direction.right;
     }

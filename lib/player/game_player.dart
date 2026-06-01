@@ -2,13 +2,21 @@ import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../net/net_player.dart';
+import '../util/extensions.dart';
+import '../util/game_logic.dart';
 
 class GamePlayer extends SimplePlayer with ObjectCollision {
   static PlayerData playerData;
+  static GamePlayer current;
 
   final Vector2 initPosition;
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;
+
+  // throttle networked movement broadcasts so we don't flood pubnub
+  DateTime _lastMoveBroadcast = DateTime.fromMillisecondsSinceEpoch(0);
+  JoystickMoveDirectional _lastBroadcastDirection = JoystickMoveDirectional.IDLE;
+  static const Duration _moveBroadcastInterval = Duration(milliseconds: 100);
 
   TextSpan playerUsernameLabel;
   TextPainter textPainter;
@@ -42,6 +50,7 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
           life: 100,
           speed: sizePlayer * 2,
       ) {
+    GamePlayer.current = this;
 
     // setup label sizes
     this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: GamePlayer.playerData.playerUsername);
@@ -68,16 +77,29 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     super.joystickChangeDirectional(event);
     isWater = tileIsWater();
 
-    // network broadcast movement data
-    var data = PlayerMoveData(
-      playerId: GamePlayer.playerData.playerId,
-      direction: event.directional,
-      position: Vector2(
-        position.x,
-        position.y
-      ),
-    );
-    NetPlayer().playerMoveData(data);
+    // network broadcast movement data, throttled so we don't flood pubnub
+    // direction changes (including coming to a stop) are always sent
+    final now = DateTime.now();
+    if (shouldBroadcastMove(
+      current: event.directional,
+      lastBroadcast: _lastBroadcastDirection,
+      now: now,
+      lastBroadcastAt: _lastMoveBroadcast,
+      interval: _moveBroadcastInterval,
+    )) {
+      _lastMoveBroadcast = now;
+      _lastBroadcastDirection = event.directional;
+
+      var data = PlayerMoveData(
+        playerId: GamePlayer.playerData.playerId,
+        direction: event.directional,
+        position: Vector2(
+          position.x,
+          position.y
+        ),
+      );
+      NetPlayer().playerMoveData(data);
+    }
   }
 
 
@@ -137,10 +159,4 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
       onFinish();
     }, runToTheEnd: true);
   }
-}
-
-extension CapExtension on String {
-  String get inCaps => this.length > 0 ?'${this[0].toUpperCase()}${this.substring(1)}':'';
-  String get allInCaps => this.toUpperCase();
-  String get capitalizeFirstofEach => this.replaceAll(RegExp(' +'), ' ').split(" ").map((str) => str.inCaps).join(" ");
 }

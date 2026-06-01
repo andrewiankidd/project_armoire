@@ -20,6 +20,15 @@ class MainMenuState extends State<MainMenu> {
   final _formKey = GlobalKey<FormState>();
 
   @override
+  void initState() {
+    super.initState();
+    // pre-fill a throwaway username in debug builds for quick iteration
+    if (kDebugMode && _playerUsernameController.text.isEmpty) {
+      _playerUsernameController.text = UniqueKey().toString();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
@@ -56,9 +65,6 @@ class MainMenuState extends State<MainMenu> {
                         textAlign: TextAlign.center,
                         validator: (text) {
                           if (text == null || text.isEmpty || text.length < 5) {
-                            if (kDebugMode) {
-                              _playerUsernameController.text = UniqueKey().toString();
-                            }
                             return 'Username must be at least 5 characters!';
                           }
                           return null;

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Changelog — Project Armoire</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #1b1320;
+            --foreground: rgba(27, 19, 32, 0.75);
+            --highlight: #ff70d6;
+            --text: #ece4f0;
+            --primary: #fff;
+            --secondary: #000;
+            --muted: #9a86a6;
+            --card: #271a2e;
+            --border: #3d2a47;
+            --radius: 5px;
+        }
+        body.light {
+            --background: #f5eef7;
+            --foreground: rgba(230, 216, 236, 0.75);
+            --highlight: #c0297d;
+            --text: #2a1a2e;
+            --primary: #1a0a1e;
+            --secondary: #fff;
+            --muted: #6a5a70;
+            --card: #e6d8ec;
+            --border: #c8b0d0;
+        }
+        @keyframes grain {
+            0%, to { transform: translate(0) }
+            10% { transform: translate(-5%, -10%) }
+            20% { transform: translate(-15%, 5%) }
+            30% { transform: translate(7%, -25%) }
+            40% { transform: translate(-5%, 25%) }
+            50% { transform: translate(-15%, 10%) }
+            60% { transform: translate(15%) }
+            70% { transform: translateY(15%) }
+            80% { transform: translate(3%, 35%) }
+            90% { transform: translate(-10%, 10%) }
+        }
+        body:before {
+            content: "";
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+            opacity: .04;
+            z-index: 9999;
+            pointer-events: none;
+            animation: grain 8s steps(10) infinite;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: var(--background);
+            color: var(--text);
+            font-family: "Montserrat", sans-serif;
+            min-height: 100vh;
+        }
+        a { color: var(--text); text-decoration: none; transition: 0.3s; font-weight: 600; }
+        a:hover { color: var(--highlight); }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px;
+        }
+        header h2 {
+            color: var(--text);
+            margin: 0;
+            font-size: 16pt;
+            text-transform: uppercase;
+        }
+        header nav a {
+            color: var(--primary);
+            margin-left: 20px;
+            text-transform: uppercase;
+            font-size: 12pt;
+        }
+        header nav a:hover {
+            border-bottom: 1px solid var(--highlight);
+            color: var(--highlight);
+        }
+        main {
+            color: var(--primary);
+            width: 90%;
+            max-width: 900px;
+            margin: 0 auto 40px;
+            background: var(--foreground);
+            border-radius: var(--radius);
+            padding: 40px;
+        }
+        main h1 {
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+        .entry { margin-bottom: 2rem; }
+        .entry h3 {
+            font-size: 1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--highlight);
+            margin-bottom: 0.5rem;
+        }
+        .entry ul {
+            list-style: none;
+            padding: 0;
+        }
+        .entry li {
+            padding: 0.2rem 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--muted);
+        }
+        .entry li:before {
+            content: "- ";
+            color: var(--highlight);
+        }
+        @media (max-width: 700px) {
+            main { padding: 20px; width: 95%; }
+            header { padding: 20px; flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Project Armoire</h2>
+        <nav>
+            <a href="javascript:toggleLightMode();">🌗</a>
+            <a href="./">Home</a>
+            <a href="changelog.html">Changelog</a>
+            <a href="docs.html">Docs</a>
+        </nav>
+    </header>
+
+    <main role="main">
+        <h1>Changelog</h1>
+        <div id="changelog"></div>
+    </main>
+
+    <script>
+        function toggleLightMode() {
+            document.body.classList.toggle("light");
+            localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+        }
+        if (localStorage.getItem("theme") === "light") {
+            document.body.classList.add("light");
+        }
+
+        // Fetch and render CHANGELOG.md — section heading per "## ..." line,
+        // bullets per "- ..." line, ignore the top "# Title" and any prose
+        // paragraphs in between.
+        fetch("CHANGELOG.md")
+            .then(function(r) { return r.text(); })
+            .then(function(text) {
+                var container = document.getElementById("changelog");
+                var lines = text.split("\n");
+                var html = "";
+                var inEntry = false;
+                var inList = false;
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i].trim();
+                    if (line === "" || line.startsWith("# ")) continue;
+                    if (line.startsWith("## ")) {
+                        if (inList) { html += "</ul>"; inList = false; }
+                        if (inEntry) html += "</div>";
+                        html += '<div class="entry"><h3>' + line.substring(3) + "</h3>";
+                        inEntry = true;
+                    } else if (line.startsWith("- ")) {
+                        if (!inEntry) { html += '<div class="entry">'; inEntry = true; }
+                        if (!inList) { html += "<ul>"; inList = true; }
+                        html += "<li>" + line.substring(2) + "</li>";
+                    }
+                }
+                if (inList) html += "</ul>";
+                if (inEntry) html += "</div>";
+                container.innerHTML = html;
+            })
+            .catch(function() {
+                document.getElementById("changelog").innerHTML = "<p>Changelog not available.</p>";
+            });
+    </script>
+</body>
+</html>

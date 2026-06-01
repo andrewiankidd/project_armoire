@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Project Armoire — an open-source, cross-platform, hacky multiplayer RPG sandbox built with Flame + Bonfire in Flutter. Roam tile-based biomes and see other players move around you in real time.">
+    <title>Project Armoire</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #1b1320;
+            --foreground: rgba(27, 19, 32, 0.75);
+            --highlight: #ff70d6;
+            --text: #ece4f0;
+            --primary: #fff;
+            --secondary: #000;
+            --muted: #9a86a6;
+            --card: #271a2e;
+            --border: #3d2a47;
+            --radius: 5px;
+            --wave-start: #ff70d6;
+            --wave-end: #1b1320;
+        }
+        body.light {
+            --background: #f5eef7;
+            --foreground: rgba(230, 216, 236, 0.75);
+            --highlight: #c0297d;
+            --text: #2a1a2e;
+            --primary: #1a0a1e;
+            --secondary: #fff;
+            --muted: #6a5a70;
+            --card: #e6d8ec;
+            --border: #c8b0d0;
+            --wave-start: #c0297d;
+            --wave-end: #f5eef7;
+        }
+
+        /* Grain overlay */
+        @keyframes grain {
+            0%, to { transform: translate(0) }
+            10% { transform: translate(-5%, -10%) }
+            20% { transform: translate(-15%, 5%) }
+            30% { transform: translate(7%, -25%) }
+            40% { transform: translate(-5%, 25%) }
+            50% { transform: translate(-15%, 10%) }
+            60% { transform: translate(15%) }
+            70% { transform: translateY(15%) }
+            80% { transform: translate(3%, 35%) }
+            90% { transform: translate(-10%, 10%) }
+        }
+        body:before {
+            content: "";
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+            opacity: .04;
+            z-index: 9999;
+            pointer-events: none;
+            animation: grain 8s steps(10) infinite;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: var(--background);
+            color: var(--text);
+            font-family: "Montserrat", sans-serif;
+            min-height: 100vh;
+        }
+        a { color: var(--text); text-decoration: none; transition: 0.3s; font-weight: 600; }
+        a:hover { color: var(--highlight); }
+        mark { background-color: var(--highlight); color: var(--background); padding: 0 6px; font-weight: 800; }
+
+        svg.header {
+            display: block;
+            width: 100%;
+            position: absolute;
+            top: -90px;
+            z-index: -1;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px;
+        }
+        header h2 {
+            color: var(--text);
+            margin: 0;
+            font-size: 16pt;
+            text-transform: uppercase;
+        }
+        header nav a {
+            color: var(--primary);
+            margin-left: 20px;
+            text-transform: uppercase;
+            font-size: 12pt;
+        }
+        header nav a:hover {
+            border-bottom: 1px solid var(--highlight);
+            color: var(--highlight);
+        }
+
+        main {
+            color: var(--primary);
+            width: 90%;
+            max-width: 900px;
+            margin: 0 auto 80px;
+            background: var(--foreground);
+            border-radius: var(--radius);
+            padding: 40px;
+        }
+
+        .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .hero img.logo {
+            width: 140px;
+            height: 140px;
+            border-radius: 20px;
+            margin-bottom: 1.2rem;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-block;
+        }
+        .hero h1 .alpha-tag {
+            position: absolute;
+            top: -0.2em;
+            right: -3.2em;
+            transform: rotate(12deg);
+            background: #ffdb4d;
+            color: #1a1a1a;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            padding: 0.2em 0.6em;
+            border-radius: 3px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #d4a800;
+        }
+        .hero p {
+            color: var(--muted);
+            max-width: 550px;
+            margin-top: 0.8rem;
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+
+        .downloads {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.6rem;
+            margin-bottom: 40px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.1rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text);
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .btn:hover {
+            background: var(--highlight);
+            border-color: var(--highlight);
+            color: var(--background);
+        }
+        .btn svg { width: 16px; height: 16px; fill: currentColor; }
+        .btn-primary {
+            background: var(--highlight);
+            border-color: var(--highlight);
+            color: var(--background);
+        }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn[disabled], .btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .features h2 {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+        .features ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .features li {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.6rem 0.9rem;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        footer {
+            color: var(--primary);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 30px;
+            font-size: 0.8rem;
+            background: var(--background);
+        }
+        footer a { color: var(--text); display: inline-flex; align-items: center; }
+        footer a:hover { filter: brightness(1.2); }
+        /* Personal-site logo lifted from andrewkidd.co.uk — same SVG, same
+           hover "punk" reveal. Hover the logo to see the extension strokes
+           punch past the circle. */
+        footer svg.personal-logo {
+            width: 22px;
+            height: 22px;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+        footer svg.personal-logo .punk { display: none; }
+        footer a:hover svg.personal-logo .punk { display: inline; }
+
+        @media (max-width: 700px) {
+            main { padding: 20px; width: 95%; }
+            .hero h1 { font-size: 2rem; }
+            .features ul { grid-template-columns: 1fr; }
+            header { padding: 20px; flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <svg class="header" xmlns="http://www.w3.org/2000/svg" width="100%" height="272" preserveAspectRatio="xMidYMid" viewBox="0 0 1827 272">
+      <defs>
+        <linearGradient id="wave-gradient" x1="0" x2="1" y1="0" y2="0">
+          <stop stop-color="var(--wave-start)" offset="0" />
+          <stop stop-color="var(--wave-end)" offset="1" />
+        </linearGradient>
+      </defs>
+      <g transform="translate(913.5,144) scale(-1,1) translate(-913.5,-144)">
+        <path d="" fill="url(#wave-gradient)" opacity="0.4">
+          <animate attributeName="d" dur="10s" repeatCount="indefinite" keyTimes="0;0.333;0.667;1" keySplines="0.2 0 0.2 1;0.2 0 0.2 1;0.2 0 0.2 1" calcMode="spline" values="M0 0L 0 282Q 183 281 365 247T 731 164T 1096 148T 1462 62T 1827 13L 1827 0Z;M0 0L 0 297Q 183 242 365 225T 731 164T 1096 102T 1462 56T 1827 -8L 1827 0Z;M0 0L 0 278Q 183 246 365 213T 731 188T 1096 123T 1462 38T 1827 -34L 1827 0Z;M0 0L 0 282Q 183 281 365 247T 731 164T 1096 148T 1462 62T 1827 13L 1827 0Z" />
+        </path>
+        <path d="" fill="url(#wave-gradient)" opacity="0.4">
+          <animate attributeName="d" dur="10s" repeatCount="indefinite" keyTimes="0;0.333;0.667;1" keySplines="0.2 0 0.2 1;0.2 0 0.2 1;0.2 0 0.2 1" calcMode="spline" begin="-2s" values="M0 0L 0 293Q 183 271 365 236T 731 176T 1096 134T 1462 33T 1827 -6L 1827 0Z;M0 0L 0 299Q 183 294 365 257T 731 167T 1096 99T 1462 90T 1827 -4L 1827 0Z;M0 0L 0 309Q 183 293 365 256T 731 156T 1096 95T 1462 48T 1827 4L 1827 0Z;M0 0L 0 293Q 183 271 365 236T 731 176T 1096 134T 1462 33T 1827 -6L 1827 0Z" />
+        </path>
+        <path d="" fill="url(#wave-gradient)" opacity="0.4">
+          <animate attributeName="d" dur="10s" repeatCount="indefinite" keyTimes="0;0.333;0.667;1" keySplines="0.2 0 0.2 1;0.2 0 0.2 1;0.2 0 0.2 1" calcMode="spline" begin="-4s" values="M0 0L 0 283Q 183 253 365 227T 731 148T 1096 127T 1462 62T 1827 -35L 1827 0Z;M0 0L 0 280Q 183 269 365 224T 731 207T 1096 145T 1462 50T 1827 29L 1827 0Z;M0 0L 0 291Q 183 301 365 258T 731 174T 1096 85T 1462 38T 1827 -2L 1827 0Z;M0 0L 0 283Q 183 253 365 227T 731 148T 1096 127T 1462 62T 1827 -35L 1827 0Z" />
+        </path>
+        <path d="" fill="url(#wave-gradient)" opacity="0.4">
+          <animate attributeName="d" dur="10s" repeatCount="indefinite" keyTimes="0;0.333;0.667;1" keySplines="0.2 0 0.2 1;0.2 0 0.2 1;0.2 0 0.2 1" calcMode="spline" begin="-6s" values="M0 0L 0 322Q 183 287 365 241T 731 182T 1096 117T 1462 107T 1827 25L 1827 0Z;M0 0L 0 301Q 183 281 365 258T 731 207T 1096 140T 1462 54T 1827 30L 1827 0Z;M0 0L 0 318Q 183 272 365 231T 731 173T 1096 118T 1462 19T 1827 -26L 1827 0Z;M0 0L 0 322Q 183 287 365 241T 731 182T 1096 117T 1462 107T 1827 25L 1827 0Z" />
+        </path>
+        <path d="" fill="url(#wave-gradient)" opacity="0.4">
+          <animate attributeName="d" dur="10s" repeatCount="indefinite" keyTimes="0;0.333;0.667;1" keySplines="0.2 0 0.2 1;0.2 0 0.2 1;0.2 0 0.2 1" calcMode="spline" begin="-8s" values="M0 0L 0 320Q 183 248 365 226T 731 185T 1096 154T 1462 81T 1827 28L 1827 0Z;M0 0L 0 278Q 183 287 365 241T 731 183T 1096 114T 1462 28T 1827 -18L 1827 0Z;M0 0L 0 274Q 183 305 365 265T 731 189T 1096 116T 1462 71T 1827 37L 1827 0Z;M0 0L 0 320Q 183 248 365 226T 731 185T 1096 154T 1462 81T 1827 28L 1827 0Z" />
+        </path>
+      </g>
+    </svg>
+
+    <header>
+        <h2>Project Armoire</h2>
+        <nav>
+            <a href="javascript:toggleLightMode();">🌗</a>
+            <a class="github-only" href="https://github.com/andrewiankidd/project_armoire">Source</a>
+            <a href="changelog.html">Changelog</a>
+            <a href="docs.html">Docs</a>
+        </nav>
+    </header>
+
+    <main role="main">
+        <div class="hero">
+            <img class="logo" src="logo.png" alt="Project Armoire icon">
+            <h1><mark>Project</mark> Armoire<span class="alpha-tag">ALPHA</span></h1>
+            <p>An open-source, cross-platform, hacky multiplayer RPG sandbox built with <strong>Flame</strong> + <strong>Bonfire</strong> in Flutter. Pick a name, roam tile-based biomes, and watch other players move around you in real time.</p>
+        </div>
+
+        <div class="downloads">
+            <a class="btn btn-primary" href="game/index.html">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                Play in Browser
+            </a>
+            <a class="btn" data-download="windows-release.zip">
+                <svg viewBox="0 0 24 24"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+                Windows
+            </a>
+            <a class="btn" data-download="macos-release.app.zip">
+                <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                macOS
+            </a>
+            <a class="btn" data-download="android-release.apk">
+                <svg viewBox="0 0 24 24"><path d="M17.523 15.341a1.018 1.018 0 0 1 0-2.036 1.018 1.018 0 0 1 0 2.036m-11.046 0a1.018 1.018 0 0 1 0-2.036 1.018 1.018 0 0 1 0 2.036m11.4-6.697l2.01-3.48a.418.418 0 0 0-.152-.571.418.418 0 0 0-.572.15l-2.035 3.527a12.58 12.58 0 0 0-5.128-1.074c-1.84 0-3.56.394-5.128 1.074L4.847 4.743a.418.418 0 0 0-.572-.15.418.418 0 0 0-.152.571l2.01 3.48C2.695 10.582.5 13.894.5 17.692h23c0-3.798-2.195-7.11-5.623-9.048z"/></svg>
+                Android
+            </a>
+        </div>
+
+        <div class="features">
+            <h2>Features</h2>
+            <ul>
+                <li><strong>Real-time multiplayer</strong> &mdash; see other players join and move, peer-to-peer over PubNub, no server</li>
+                <li>Tile-based biome maps authored in Tiled, with seamless map-to-map transitions</li>
+                <li>Virtual joystick + keyboard controls, plus an action / cast button</li>
+                <li>Eight-direction sprite-sheet hero animations &mdash; idle, run, cast</li>
+                <li>Environmental effects &mdash; water slows you and cloaks your sprite</li>
+                <li>45&deg; rotated camera with map-bounded follow</li>
+                <li>One Flutter codebase &mdash; Web, Windows, macOS, Android, iOS</li>
+                <li>Pick a username and drop straight into the shared world</li>
+            </ul>
+        </div>
+    </main>
+
+    <footer>
+        <b>&copy; <script>document.write(new Date().getFullYear())</script>++</b>
+        <a href="https://andrewkidd.co.uk" target="_blank" rel="noopener" title="andrewkidd.co.uk">
+            <svg class="personal-logo" xmlns="http://www.w3.org/2000/svg" viewBox="-15 -15 230 230">
+                <!-- Outer circle -->
+                <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" stroke-width="8" />
+                <!-- Base lines (always visible) -->
+                <g stroke="currentColor" stroke-width="6.4" stroke-linecap="round">
+                    <line x1="163.6" y1="36.4" x2="36.4" y2="163.6" />
+                    <line x1="36.4" y1="163.6" x2="100" y2="10" />
+                    <line x1="100" y1="100" x2="163.6" y2="163.6" />
+                    <line x1="100" y1="10" x2="100" y2="190" />
+                </g>
+                <!-- Punk: 20px extensions past circle edge, revealed on hover -->
+                <g class="punk" stroke="currentColor" stroke-width="6.4" stroke-linecap="round">
+                    <line x1="163.6" y1="36.4" x2="177.7" y2="22.3" />
+                    <line x1="36.4" y1="163.6" x2="22.3" y2="177.7" />
+                    <line x1="36.4" y1="163.6" x2="28.7" y2="182.1" />
+                    <line x1="100" y1="10" x2="107.7" y2="-8.5" />
+                    <line x1="163.6" y1="163.6" x2="177.7" y2="177.7" />
+                    <line x1="100" y1="10" x2="100" y2="-10" />
+                    <line x1="100" y1="190" x2="100" y2="210" />
+                </g>
+            </svg>
+        </a>
+    </footer>
+
+    <script>
+        // Dual-host template hooks. Project Armoire is GitHub-Pages-only
+        // today, but the script keeps the github-only / cloudflare-only
+        // class gates and the `data-download` rewriting so a Cloudflare leg
+        // can drop in later without HTML edits:
+        //   - elements with `.github-only` are hidden on Cloudflare,
+        //     `.cloudflare-only` ones are hidden on GitHub,
+        //   - `[data-download]` anchors auto-flip between
+        //     `releases/latest/download/<file>` and `/downloads/<file>`.
+        var isGitHub = window.location.hostname.indexOf("github.io") !== -1;
+        if (isGitHub) {
+            document.querySelectorAll(".cloudflare-only").forEach(function(el) {
+                el.style.display = "none";
+            });
+        } else {
+            document.querySelectorAll(".github-only").forEach(function(el) {
+                el.style.display = "none";
+            });
+        }
+
+        document.querySelectorAll("[data-download]").forEach(function(el) {
+            var file = el.getAttribute("data-download");
+            if (isGitHub) {
+                el.href = "https://github.com/andrewiankidd/project_armoire/releases/download/latest-main/" + file;
+            } else {
+                el.href = "/downloads/" + file;
+            }
+        });
+
+        function toggleLightMode() {
+            document.body.classList.toggle("light");
+            localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+            updateWaveColors();
+        }
+
+        function updateWaveColors() {
+            var style = getComputedStyle(document.documentElement);
+            var stops = document.querySelectorAll("#wave-gradient stop");
+            if (stops.length >= 2) {
+                stops[0].setAttribute("stop-color", style.getPropertyValue("--wave-start").trim());
+                stops[1].setAttribute("stop-color", style.getPropertyValue("--wave-end").trim());
+            }
+        }
+
+        if (localStorage.getItem("theme") === "light") {
+            document.body.classList.add("light");
+            updateWaveColors();
+        }
+    </script>
+</body>
+</html>
