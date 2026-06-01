@@ -19,9 +19,7 @@ void main() {
     });
 
     test('round trip a>b>a arrives on opposite sides', () {
-      // walk off the right of biome1 -> arrive on the left of biome2
       expect(parseExit('sensorRight:biome2:left').entrySide, ShowInEnum.left);
-      // walk off the left of biome2 -> arrive on the right of biome1
       expect(parseExit('sensorLeft:biome1:right').entrySide, ShowInEnum.right);
     });
 
@@ -58,66 +56,79 @@ void main() {
     });
 
     test('left and right are on opposite sides', () {
-      final l = initPositionFor(ShowInEnum.left, 32);
-      final r = initPositionFor(ShowInEnum.right, 32);
-      expect(r.x, greaterThan(l.x));
+      expect(initPositionFor(ShowInEnum.right, 32).x,
+          greaterThan(initPositionFor(ShowInEnum.left, 32).x));
     });
   });
 
-  group('shouldBroadcastMove', () {
+  group('shouldBroadcastState', () {
     final t0 = DateTime(2020);
-    final interval = Duration(milliseconds: 100);
+    final moving = Duration(milliseconds: 100);
+    final idle = Duration(milliseconds: 2000);
 
-    test('always sends on a direction change, even within the interval', () {
+    test('broadcasts while moving once the moving interval elapses', () {
       expect(
-        shouldBroadcastMove(
-          current: JoystickMoveDirectional.MOVE_LEFT,
-          lastBroadcast: JoystickMoveDirectional.MOVE_RIGHT,
-          now: t0,
-          lastBroadcastAt: t0,
-          interval: interval,
+        shouldBroadcastState(
+          now: t0.add(Duration(milliseconds: 100)),
+          lastAt: t0,
+          moving: true,
+          movingInterval: moving,
+          idleInterval: idle,
         ),
         isTrue,
       );
     });
 
-    test('suppresses same-direction spam within the interval', () {
+    test('suppresses while moving within the moving interval', () {
       expect(
-        shouldBroadcastMove(
-          current: JoystickMoveDirectional.MOVE_LEFT,
-          lastBroadcast: JoystickMoveDirectional.MOVE_LEFT,
+        shouldBroadcastState(
           now: t0.add(Duration(milliseconds: 50)),
-          lastBroadcastAt: t0,
-          interval: interval,
+          lastAt: t0,
+          moving: true,
+          movingInterval: moving,
+          idleInterval: idle,
         ),
         isFalse,
       );
     });
 
-    test('sends the same direction once the interval has elapsed', () {
+    test('uses the slow idle interval when idle', () {
+      // 500ms elapsed: would send if moving, but idle waits for the 2s heartbeat
       expect(
-        shouldBroadcastMove(
-          current: JoystickMoveDirectional.MOVE_LEFT,
-          lastBroadcast: JoystickMoveDirectional.MOVE_LEFT,
-          now: t0.add(Duration(milliseconds: 100)),
-          lastBroadcastAt: t0,
-          interval: interval,
+        shouldBroadcastState(
+          now: t0.add(Duration(milliseconds: 500)),
+          lastAt: t0,
+          moving: false,
+          movingInterval: moving,
+          idleInterval: idle,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldBroadcastState(
+          now: t0.add(Duration(milliseconds: 2000)),
+          lastAt: t0,
+          moving: false,
+          movingInterval: moving,
+          idleInterval: idle,
         ),
         isTrue,
       );
     });
+  });
 
-    test('always sends a stop (IDLE) immediately', () {
-      expect(
-        shouldBroadcastMove(
-          current: JoystickMoveDirectional.IDLE,
-          lastBroadcast: JoystickMoveDirectional.MOVE_LEFT,
-          now: t0,
-          lastBroadcastAt: t0,
-          interval: interval,
-        ),
-        isTrue,
-      );
+  group('acceptSnapshot', () {
+    test('accepts strictly newer timestamps', () {
+      expect(acceptSnapshot(100, 50), isTrue);
+    });
+
+    test('rejects older or equal timestamps (stale / out of order)', () {
+      expect(acceptSnapshot(50, 100), isFalse);
+      expect(acceptSnapshot(100, 100), isFalse);
+    });
+
+    test('accepts the first snapshot (initial -1)', () {
+      expect(acceptSnapshot(0, -1), isTrue);
     });
   });
 
@@ -129,9 +140,48 @@ void main() {
     test('does not snap within the threshold', () {
       expect(shouldSnapToPosition(Vector2(10, 0), Vector2(0, 0), 16), isFalse);
     });
+  });
 
-    test('does not snap exactly at the threshold', () {
-      expect(shouldSnapToPosition(Vector2(16, 0), Vector2(0, 0), 16), isFalse);
+  group('lerpVector', () {
+    test('midpoint at t=0.5', () {
+      final p = lerpVector(Vector2(0, 0), Vector2(10, 20), 0.5);
+      expect(p.x, 5);
+      expect(p.y, 10);
+    });
+
+    test('endpoints at t=0 and t=1', () {
+      expect(lerpVector(Vector2(2, 3), Vector2(8, 9), 0).x, 2);
+      expect(lerpVector(Vector2(2, 3), Vector2(8, 9), 1).y, 9);
+    });
+  });
+
+  group('isSanePosition', () {
+    test('accepts in-range finite positions', () {
+      expect(isSanePosition(100, 200, 1000), isTrue);
+    });
+
+    test('rejects NaN / infinity', () {
+      expect(isSanePosition(double.nan, 0, 1000), isFalse);
+      expect(isSanePosition(0, double.infinity, 1000), isFalse);
+    });
+
+    test('rejects out-of-range positions', () {
+      expect(isSanePosition(5000, 0, 1000), isFalse);
+      expect(isSanePosition(0, -5000, 1000), isFalse);
+    });
+  });
+
+  group('directionFromIndex', () {
+    test('maps a valid index', () {
+      expect(directionFromIndex(JoystickMoveDirectional.MOVE_LEFT.index),
+          JoystickMoveDirectional.MOVE_LEFT);
+    });
+
+    test('falls back to IDLE for bad input', () {
+      expect(directionFromIndex(9999), JoystickMoveDirectional.IDLE);
+      expect(directionFromIndex(-1), JoystickMoveDirectional.IDLE);
+      expect(directionFromIndex('x'), JoystickMoveDirectional.IDLE);
+      expect(directionFromIndex(null), JoystickMoveDirectional.IDLE);
     });
   });
 }

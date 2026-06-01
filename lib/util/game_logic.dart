@@ -53,21 +53,44 @@ Vector2 initPositionFor(ShowInEnum showIn, double tileSize) {
   }
 }
 
-// throttle: always broadcast a direction change (incl. stopping), otherwise
-// only once per interval so we don't flood pubnub on a continuous drag
-bool shouldBroadcastMove({
-  JoystickMoveDirectional current,
-  JoystickMoveDirectional lastBroadcast,
+// throttle the local player's state broadcast: a fast stream while moving and a
+// slow heartbeat while idle, so remotes get steady positions + presence
+bool shouldBroadcastState({
   DateTime now,
-  DateTime lastBroadcastAt,
-  Duration interval,
+  DateTime lastAt,
+  bool moving,
+  Duration movingInterval,
+  Duration idleInterval,
 }) {
-  final directionChanged = current != lastBroadcast;
-  return directionChanged || now.difference(lastBroadcastAt) >= interval;
+  final interval = moving ? movingInterval : idleInterval;
+  return now.difference(lastAt) >= interval;
 }
 
-// de-sync check: snap a remote player to the broadcast position when our
-// dead-reckoned position has drifted further than the threshold
-bool shouldSnapToPosition(Vector2 broadcast, Vector2 current, double threshold) {
-  return broadcast.distanceTo(current) > threshold;
+// newest-wins ordering for snapshots; drop anything not strictly newer
+bool acceptSnapshot(int incomingSentAt, int lastSentAt) {
+  return incomingSentAt > lastSentAt;
+}
+
+// de-sync check: hard-snap a remote when it has drifted further than threshold
+bool shouldSnapToPosition(Vector2 target, Vector2 current, double threshold) {
+  return target.distanceTo(current) > threshold;
+}
+
+// smooth chase toward a target position (t clamped to 0..1 by the caller)
+Vector2 lerpVector(Vector2 a, Vector2 b, double t) {
+  return Vector2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+}
+
+// reject NaN/inf/wildly-out-of-range positions (cheap sanity, not security)
+bool isSanePosition(double x, double y, double maxExtent) {
+  if (x.isNaN || y.isNaN || x.isInfinite || y.isInfinite) return false;
+  return x >= -maxExtent && x <= maxExtent && y >= -maxExtent && y <= maxExtent;
+}
+
+// clamp a raw json index back to a safe enum value
+JoystickMoveDirectional directionFromIndex(dynamic index) {
+  if (index is int && index >= 0 && index < JoystickMoveDirectional.values.length) {
+    return JoystickMoveDirectional.values[index];
+  }
+  return JoystickMoveDirectional.IDLE;
 }

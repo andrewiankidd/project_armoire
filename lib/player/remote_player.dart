@@ -3,13 +3,24 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../net/net_player.dart';
 import '../util/game_logic.dart';
-class RemotePlayer extends SimpleEnemy with ObjectCollision {
+
+// a remote player is a non-colliding interpolated avatar; we never treat it as
+// a real enemy and it never physically blocks the local player
+class RemotePlayer extends SimpleEnemy {
   static const REDUCTION_SPEED_DIAGONAL = 0.7;
   JoystickMoveDirectional currentMove = JoystickMoveDirectional.IDLE;
 
   // stop dead-reckoning if we stop hearing from this player
   double _timeSinceLastMove = 0;
   static const double _moveTimeoutSeconds = 0.5;
+
+  // newest-wins ordering + presence bookkeeping
+  int _lastSentAt = -1;
+  int lastSeenMs = 0;
+
+  // authoritative position from the latest snapshot; we replay movement for the
+  // animation but gently correct toward this so we don't drift
+  Vector2 _targetPosition;
 
   final PlayerData playerData;
 
@@ -51,36 +62,27 @@ class RemotePlayer extends SimpleEnemy with ObjectCollision {
           speed: sizePlayer * 2,
         ) {
 
+    lastSeenMs = DateTime.now().millisecondsSinceEpoch;
+    _targetPosition = initPosition.clone();
+
     // setup label sizes
     this.playerUsernameLabel = new TextSpan(style: new TextStyle(color: Colors.red[600]), text: this.playerData.playerUsername);
     this.textPainter = new TextPainter(text: this.playerUsernameLabel, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
 
-    // setup collision (redundant comment)
-    this.setupCollision(
-      CollisionConfig(
-        collisions: [
-          CollisionArea.rectangle(
-            size: Vector2(sizePlayer / 3, sizePlayer * 0.5),
-            align: Vector2(sizePlayer * 0.25, sizePlayer * 0.65),
-          ),
-        ],
-      ),
-    );
+    // no collision: remotes are non-blocking avatars
   }
 
-  void moveRemotePlayer(PlayerMoveData playerMoveData){
+  // ingest a network snapshot; stale (out-of-order) snapshots are dropped
+  void applySnapshot(PlayerState state) {
+    lastSeenMs = DateTime.now().millisecondsSinceEpoch;
+    if (!acceptSnapshot(state.sentAt, _lastSentAt)) return;
+    _lastSentAt = state.sentAt;
 
-    // fresh update, reset the dead-reckoning timeout
+    currentMove = state.direction;
+    _targetPosition = state.position.clone();
+    // replay at the sender's actual speed so we drift less between updates
+    speed = (baseSpeed * state.intensity).clamp(0.0, baseSpeed);
     _timeSinceLastMove = 0;
-
-    // set intended direction
-    // game will pick it up in next tick of update method
-    this.currentMove = playerMoveData.direction;
-
-    // de-sync check
-    if (shouldSnapToPosition(playerMoveData.position, position, tileSize * 0.5)) {
-      position = playerMoveData.position;
-    }
   }
 
   void _moveRemotePlayer(JoystickMoveDirectional direction) {
@@ -143,7 +145,20 @@ class RemotePlayer extends SimpleEnemy with ObjectCollision {
       currentMove = JoystickMoveDirectional.IDLE;
     }
     _moveRemotePlayer(currentMove);
+    _correctPosition(dt);
     super.update(dt);
+  }
+
+  // pull toward the latest authoritative position: snap if far off, otherwise
+  // chase smoothly so the replay never drifts away
+  void _correctPosition(double dt) {
+    if (_targetPosition == null) return;
+    if (shouldSnapToPosition(_targetPosition, position, tileSize * 2)) {
+      position = _targetPosition.clone();
+    } else if (shouldSnapToPosition(_targetPosition, position, 0.5)) {
+      final t = (dt * 6).clamp(0.0, 1.0);
+      position = lerpVector(position, _targetPosition, t);
+    }
   }
 
   @override

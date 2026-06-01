@@ -6,20 +6,27 @@ import '../config/config.dart';
 import 'net_player.dart';
 
 class NetMessage {
+  // bump when the wire format changes incompatibly; peers reject mismatches
+  static const int protocolVersion = 1;
+
+  int v;
   String messageType;
   var data;
 
   NetMessage(messageType, data){
+    this.v = protocolVersion;
     this.messageType = messageType;
     this.data = data;
   }
 
   NetMessage.fromJson(Map<String, dynamic> json)
-      : messageType =  json['messageType'],
+      : v = json['v'],
+        messageType =  json['messageType'],
         data = json['data'];
 
   Map<String, dynamic> toJson() =>
       {
+        'v': v,
         'messageType': messageType,
         'data': data
       };
@@ -44,7 +51,7 @@ class Net {
       developer.log('failed to init pubnub!', name: 'project_armoire.Net');
     }
     // Subscribe to a channel
-    Subscription subscription = pubnub.subscribe(channels: {'player', 'messages'});
+    Subscription subscription = pubnub.subscribe(channels: {'player'});
     subscription.messages.listen((message) {
       this.handleMessage(message);
     });
@@ -54,6 +61,11 @@ class Net {
     try {
       developer.log('handleMessage: ${developer.inspect(envelope.content)}', name: 'project_armoire.Net');
       NetMessage netMessage = NetMessage.fromJson(envelope.content);
+      // protocol gate: ignore messages from an incompatible client version
+      if (netMessage.v != NetMessage.protocolVersion) {
+        developer.log('ignoring v${netMessage.v} message (we speak v${NetMessage.protocolVersion})', name: 'project_armoire.Net');
+        return;
+      }
       switch(envelope.channel) {
         case "player":
           NetPlayer().handleMessage(netMessage);

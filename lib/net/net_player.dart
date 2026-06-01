@@ -1,160 +1,175 @@
 import 'dart:developer' as developer;
 import 'package:bonfire/bonfire.dart';
 import '../main.dart';
+import '../game/game.dart';
 import '../net/net.dart';
 import '../player/game_player.dart';
-
 import '../player/remote_player.dart';
 import '../player/sprite_sheet_hero.dart';
+import '../util/game_logic.dart';
 
 // networked player methods
 class NetPlayer {
 
     static List<RemotePlayer> remotePlayers = [];
 
+    // how long without a snapshot before we treat a remote as gone
+    static const int staleTimeoutMs = 6000;
+
     void handleMessage(NetMessage message) {
-        developer.log('handleMessage: ${developer.inspect(message)}', name: 'project_armoire.NetPlayer');
-        switch(message.messageType) {
-            case "playerJoinData":
-                NetPlayer().onPlayerJoin(PlayerData.fromJson(message.data));
+        switch (message.messageType) {
+            case 'playerState':
+                onPlayerState(PlayerState.fromJson(message.data));
                 break;
-            case "playerMoveData":
-                NetPlayer().onPlayerMove(PlayerMoveData.fromJson(message.data));
+            case 'playerLeave':
+                onPlayerLeave(message.data['playerId']);
                 break;
             default:
-                throw "unknown message type ${message.messageType}";
+                developer.log('unknown message type ${message.messageType}', name: 'project_armoire.NetPlayer');
         }
     }
 
-    // to join a session
-    void playerJoin(PlayerData playerData) {
-        Net().broadcastUpdate('player', 'playerJoinData', playerData);
+    // broadcast our current state (doubles as movement + presence heartbeat)
+    void broadcastState(PlayerState state) {
+        Net().broadcastUpdate('player', 'playerState', state);
     }
 
-    // what to do when player joins session
-    void onPlayerJoin(PlayerData playerData) {
-        developer.log('onPlayerJoin: ${developer.inspect(playerData)}', name: 'project_armoire.NetPlayer');
+    // best-effort departure notice
+    void broadcastLeave(String playerId) {
+        Net().broadcastUpdate('player', 'playerLeave', {'playerId': playerId});
+    }
 
-        // ignore network traffic until we're actually in the game ourselves
-        if (GamePlayer.playerData == null || gameStateKey.currentState == null) {
+    // what to do with a remote player's snapshot
+    void onPlayerState(PlayerState state) {
+        // ignore traffic until we're actually in the game ourselves
+        if (GamePlayer.playerData == null || GameState.current == null) return;
+        // ignore our own id (pubnub echoes our own publishes back to us)
+        if (state.playerId == GamePlayer.playerData.playerId) return;
+        // cheap sanity: drop obviously bad payloads (anti-grief, not security)
+        if (!isSanePosition(state.position.x, state.position.y, tileSize * 200)) return;
+
+        final existing = _existingPlayerById(state.playerId);
+
+        // map filter: only render players who are on our current map
+        if (state.map != GameState.mapLocation) {
+            // they walked off to another map; drop them from our world
+            if (existing != null) _removePlayer(state.playerId);
             return;
         }
-        if (playerData.playerId == GamePlayer.playerData.playerId) {
-            // ignore our own id
-            return;
+
+        if (existing == null) {
+            _addPlayer(state);
+        } else {
+            // update in place; no destroy/recreate, no flicker
+            existing.applySnapshot(state);
         }
-        // announce own presence to a player we haven't seen before
-        if (_existingPlayerById(playerData.playerId) == null) {
-            // include our current position so we spawn in the right place for them
-            if (GamePlayer.current != null) {
-                GamePlayer.playerData.position = GamePlayer.current.position.clone();
-            }
-            this.playerJoin(GamePlayer.playerData);
-        }
-        // prevent dupes
-        this._removePlayer(playerData);
-        // add player
-        this._addPlayer(playerData);
+    }
+
+    void onPlayerLeave(String playerId) {
+        if (playerId == null) return;
+        _removePlayer(playerId);
     }
 
     RemotePlayer _existingPlayerById(String playerId) {
-        return NetPlayer.remotePlayers.firstWhere((player) => player.playerData.playerId == playerId, orElse: () => null);
+        return NetPlayer.remotePlayers.firstWhere((p) => p.playerData.playerId == playerId, orElse: () => null);
     }
 
-    void _removePlayer(PlayerData playerData) {
-        // remove any matching playerIds to prevent duplication
-        RemotePlayer existingPlayer = _existingPlayerById(playerData.playerId);
-        if (existingPlayer != null) {
-            NetPlayer.remotePlayers.removeWhere((player) => player.playerData.playerId == playerData.playerId);
-            gameStateKey.currentState.removeComponent(existingPlayer);
+    void _removePlayer(String playerId) {
+        final existing = _existingPlayerById(playerId);
+        if (existing != null) {
+            NetPlayer.remotePlayers.removeWhere((p) => p.playerData.playerId == playerId);
+            GameState.current?.removeComponent(existing);
         }
     }
 
-    void _addPlayer(PlayerData playerData) {
-        // spawn at the joiner's reported position, falling back to the default
-        Vector2 spawn = playerData.position ?? Vector2(tileSize * 2, tileSize * 10);
-
-        //create remoteplayer
-        RemotePlayer remotePlayer = RemotePlayer(playerData, spawn, SpriteSheetHero.current);
-
-        // dump em in
+    void _addPlayer(PlayerState state) {
+        RemotePlayer remotePlayer = RemotePlayer(
+            PlayerData(playerId: state.playerId, playerUsername: state.username),
+            state.position.clone(),
+            SpriteSheetHero.current,
+        );
+        remotePlayer.applySnapshot(state);
         NetPlayer.remotePlayers.add(remotePlayer);
-
-        gameStateKey.currentState.addComponent(remotePlayer);
+        GameState.current?.addComponent(remotePlayer);
     }
 
-    // to move in a session
-    void playerMoveData(PlayerMoveData moveData) {
-        Net().broadcastUpdate('player', 'playerMoveData', moveData);
+    // drop the whole roster (e.g. when a map transition builds a fresh game)
+    static void clearRoster() {
+        remotePlayers.clear();
     }
 
-    // what to do when player moves in a session
-    void onPlayerMove(PlayerMoveData moveData) {
-        developer.log('onPlayerMove: ${developer.inspect(moveData)}', name: 'project_armoire.NetPlayer');
-
-        // ignore network traffic until we're actually in the game ourselves
-        if (GamePlayer.playerData == null || gameStateKey.currentState == null) {
-            return;
+    // remove remotes we haven't heard a snapshot from recently
+    static void cullStale() {
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final stale = remotePlayers.where((p) => nowMs - p.lastSeenMs > staleTimeoutMs).toList();
+        for (final p in stale) {
+            remotePlayers.remove(p);
+            GameState.current?.removeComponent(p);
         }
-        if (moveData.playerId == GamePlayer.playerData.playerId) {
-            // ignore our own id
-            return;
-        }
-
-        RemotePlayer remotePlayer = _existingPlayerById(moveData.playerId);
-        if (remotePlayer == null) {
-            // move arrived for a player we haven't added yet; ignore it
-            return;
-        }
-        gameStateKey.currentState.moveComponent(remotePlayer, moveData);
     }
 }
 
-// networked player properties
+// stable identity for a player (id + display name)
 class PlayerData {
     String playerId;
     String playerUsername;
-    Vector2 position;
 
-    PlayerData({this.playerId, this.playerUsername, this.position});
+    PlayerData({this.playerId, this.playerUsername});
     PlayerData.fromJson(Map<String, dynamic> json)
-        : playerId =  json['playerId'],
-        playerUsername = json['playerUsername'],
-        position = json['position'] != null
-            ? Vector2(json['position']['x'], json['position']['y'])
-            : null;
+        : playerId = json['playerId'],
+        playerUsername = json['playerUsername'];
 
     Map<String, dynamic> toJson() =>
     {
         'playerId': playerId,
         'playerUsername': playerUsername,
-        'position': position == null ? null : {
-            'x': position.x,
-            'y': position.y,
-        }
     };
 }
 
-// networked player movement properties
-class PlayerMoveData {
+// a periodic snapshot of where a player is + what they're doing; also carries
+// identity (id/username) and map so any single message fully describes a player
+class PlayerState {
     String playerId;
-    JoystickMoveDirectional direction;
+    String username;
+    String map;
     Vector2 position;
+    JoystickMoveDirectional direction;
+    double intensity;
+    int sentAt;
 
-    PlayerMoveData({this.playerId, this.direction, this.position});
+    PlayerState({
+        this.playerId,
+        this.username,
+        this.map,
+        this.position,
+        this.direction,
+        this.intensity,
+        this.sentAt,
+    });
 
-    PlayerMoveData.fromJson(Map<String, dynamic> json)
-        : playerId =  json['playerId'],
-        direction = JoystickMoveDirectional.values[json['direction']],
-        position = Vector2(json['position']['x'], json['position']['y']);
+    PlayerState.fromJson(Map<String, dynamic> json)
+        : playerId = json['playerId'],
+        username = json['username'],
+        map = json['map'],
+        position = Vector2(
+            (json['position']['x'] as num).toDouble(),
+            (json['position']['y'] as num).toDouble(),
+        ),
+        direction = directionFromIndex(json['direction']),
+        intensity = (json['intensity'] as num).toDouble(),
+        sentAt = json['sentAt'];
 
     Map<String, dynamic> toJson() =>
     {
         'playerId': playerId,
-        'direction': direction.index,
+        'username': username,
+        'map': map,
         'position': {
             'x': position.x,
             'y': position.y,
-        }
+        },
+        'direction': direction.index,
+        'intensity': intensity,
+        'sentAt': sentAt,
     };
 }

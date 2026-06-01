@@ -8,15 +8,23 @@ import '../util/game_logic.dart';
 class GamePlayer extends SimplePlayer with ObjectCollision {
   static PlayerData playerData;
   static GamePlayer current;
+  // set true right before a map transition so onRemove doesn't broadcast a
+  // spurious leave (the new-map snapshot + map filter handle that instead)
+  static bool suppressLeaveOnRemove = false;
 
   final Vector2 initPosition;
+  final String map;
   static final sizePlayer = tileSize * 1.5;
   double baseSpeed = sizePlayer * 2;
 
-  // throttle networked movement broadcasts so we don't flood pubnub
-  DateTime _lastMoveBroadcast = DateTime.fromMillisecondsSinceEpoch(0);
-  JoystickMoveDirectional _lastBroadcastDirection = JoystickMoveDirectional.IDLE;
-  static const Duration _moveBroadcastInterval = Duration(milliseconds: 100);
+  // state broadcast cadence: fast while moving, slow heartbeat while idle
+  DateTime _lastStateBroadcast = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastCull = DateTime.fromMillisecondsSinceEpoch(0);
+  JoystickMoveDirectional _currentDirectional = JoystickMoveDirectional.IDLE;
+  double _currentIntensity = 0;
+  static const Duration _movingInterval = Duration(milliseconds: 100);
+  static const Duration _idleInterval = Duration(milliseconds: 2000);
+  static const Duration _cullInterval = Duration(milliseconds: 1000);
 
   TextSpan playerUsernameLabel;
   TextPainter textPainter;
@@ -25,7 +33,7 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     ..blendMode = BlendMode.clear;
   bool isWater = false;
 
-  GamePlayer(this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right})
+  GamePlayer(this.initPosition, SpriteSheet spriteSheet, {Direction initDirection = Direction.right, this.map})
       : super(
           animation:SimpleDirectionAnimation(
               idleUp: spriteSheet.createAnimation(row: 0, stepTime: 0.1, loop: true, from: 0, to: 1).asFuture(),
@@ -77,29 +85,62 @@ class GamePlayer extends SimplePlayer with ObjectCollision {
     super.joystickChangeDirectional(event);
     isWater = tileIsWater();
 
-    // network broadcast movement data, throttled so we don't flood pubnub
-    // direction changes (including coming to a stop) are always sent
-    final now = DateTime.now();
-    if (shouldBroadcastMove(
-      current: event.directional,
-      lastBroadcast: _lastBroadcastDirection,
-      now: now,
-      lastBroadcastAt: _lastMoveBroadcast,
-      interval: _moveBroadcastInterval,
-    )) {
-      _lastMoveBroadcast = now;
-      _lastBroadcastDirection = event.directional;
+    // remember intent; the actual broadcast happens at a fixed cadence in
+    // update() so remotes get a steady stream + presence heartbeat
+    _currentDirectional = event.directional;
+    _currentIntensity = event.intensity;
+  }
 
-      var data = PlayerMoveData(
-        playerId: GamePlayer.playerData.playerId,
-        direction: event.directional,
-        position: Vector2(
-          position.x,
-          position.y
-        ),
-      );
-      NetPlayer().playerMoveData(data);
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _maybeBroadcastState();
+    _maybePruneRemotes();
+  }
+
+  // broadcast our state at 10hz while moving, ~0.5hz while idle (presence)
+  void _maybeBroadcastState() {
+    if (GamePlayer.playerData == null) return;
+    final now = DateTime.now();
+    final moving = _currentDirectional != JoystickMoveDirectional.IDLE;
+    if (!shouldBroadcastState(
+      now: now,
+      lastAt: _lastStateBroadcast,
+      moving: moving,
+      movingInterval: _movingInterval,
+      idleInterval: _idleInterval,
+    )) {
+      return;
     }
+    _lastStateBroadcast = now;
+    NetPlayer().broadcastState(PlayerState(
+      playerId: GamePlayer.playerData.playerId,
+      username: GamePlayer.playerData.playerUsername,
+      map: map,
+      position: Vector2(position.x, position.y),
+      direction: _currentDirectional,
+      intensity: _currentIntensity,
+      sentAt: now.millisecondsSinceEpoch,
+    ));
+  }
+
+  // periodically drop remotes we've stopped hearing from (disconnects)
+  void _maybePruneRemotes() {
+    final now = DateTime.now();
+    if (now.difference(_lastCull) < _cullInterval) return;
+    _lastCull = now;
+    NetPlayer.cullStale();
+  }
+
+  @override
+  void onRemove() {
+    // best-effort departure notice on a real exit; suppressed on map
+    // transitions (app-close is handled by the staleness cull on other clients)
+    if (!GamePlayer.suppressLeaveOnRemove && GamePlayer.playerData != null) {
+      NetPlayer().broadcastLeave(GamePlayer.playerData.playerId);
+    }
+    GamePlayer.suppressLeaveOnRemove = false;
+    super.onRemove();
   }
 
 

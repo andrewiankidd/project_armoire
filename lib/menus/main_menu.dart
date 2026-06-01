@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../config/config.dart';
-import '../main.dart';
 import '../game/game.dart';
 import '../player/game_player.dart';
 import '../util/extensions.dart';
@@ -80,9 +79,10 @@ class MainMenuState extends State<MainMenu> {
                                   playerId: kDebugMode ? "${Config.deviceId}-${_playerUsernameController.value.text}" : Config.deviceId,
                                   playerUsername: _playerUsernameController.value.text,
                                 );
-                                NetPlayer().playerJoin(GamePlayer.playerData);
+                                // no explicit join: GamePlayer broadcasts its
+                                // state (which carries identity + map) on entry
 
-                              context.goTo(Game(key: gameStateKey));
+                              context.goTo(Game());
                             }
                           });
                         },

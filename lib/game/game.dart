@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:project_armoire/net/net_player.dart';
 import '../main.dart';
 import '../player/game_player.dart';
-import '../player/remote_player.dart';
 import '../player/sprite_sheet_hero.dart';
 import '../util/exit_map_sensor.dart';
 import '../util/extensions.dart';
@@ -17,7 +16,10 @@ import '../util/show_in_enum.dart';
 
 class Game extends StatefulWidget {
   final ShowInEnum showInEnum;
-  const Game({Key key, this.showInEnum = ShowInEnum.left}) : super(key: key);
+  // the map we came from (null on first entry); used to spawn at the paired
+  // return doorway so we arrive relative to where we left
+  final String fromMap;
+  const Game({Key key, this.showInEnum = ShowInEnum.left, this.fromMap}) : super(key: key);
 
   @override
   GameState createState() => GameState();
@@ -26,15 +28,31 @@ class Game extends StatefulWidget {
 class GameState extends State<Game> with WidgetsBindingObserver implements GameListener {
   GameController _controller;
 
+  // the running game, so networking can reach it without a shared GlobalKey
+  // (a shared key would make Flutter reuse this State across map transitions
+  // and the new map would never load)
+  static GameState current;
   static String mapLocation = 'biome1';
   static TiledWorldMap mapData;
   bool _mapInitialized = false;
 
   @override
   void initState() {
+    GameState.current = this;
     WidgetsBinding.instance.addObserver(this);
+    // fresh game (incl. after a map transition): start with an empty roster and
+    // let snapshots repopulate only the players on this map
+    NetPlayer.clearRoster();
     _controller = GameController()..addListener(this);
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    // only clear if a newer game hasn't already taken over (transition overlap)
+    if (GameState.current == this) GameState.current = null;
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
@@ -47,25 +65,73 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       rootBundle.loadString('assets/images/' + GameState.mapData.path).then((String result){
         final decoded = json.decode(result);
 
+        // tiled object coords are in original tile units; the map is rendered at
+        // runtime tileSize, so scale to world coords
+        final double scaleX = tileSize / decoded['tilewidth'];
+        final double scaleY = tileSize / decoded['tileheight'];
+        final Vector2 mapCenter = Vector2(
+          (decoded['width'] * tileSize) / 2,
+          (decoded['height'] * tileSize) / 2,
+        );
+
         final Iterable objectGroups = decoded['layers'].where((element) => element["type"] == "objectgroup");
+
+        // doorways on this map that lead back to where we came from
+        final List<Vector2> returnSensors = [];
 
         objectGroups.forEach((objectGroup) {
           objectGroup['objects'].forEach((object) {
+            final String name = object['name'];
             GameState.mapData.registerObject(
-              object['name'],
+              name,
               (p) => ExitMapSensor(
-                object['name'],
+                name,
                 p.position,
                 p.size,
                 (v) => _exitMap(v, context),
              ),
             );
+
+            final exit = parseExit(name);
+            if (widget.fromMap != null && exit != null && exit.biome == widget.fromMap) {
+              final cx = (object['x'] + (object['width'] ?? 0) / 2) * scaleX;
+              final cy = (object['y'] + (object['height'] ?? 0) / 2) * scaleY;
+              returnSensors.add(Vector2(cx, cy));
+            }
           });
         });
+
+        _spawnAtReturnSensor(returnSensors, mapCenter);
       });
     }
 
     return this._buildInterface(context);
+  }
+
+  // place the local player just inside the doorway that leads back to the map
+  // we came from, so a round trip lands you relative to where you left
+  void _spawnAtReturnSensor(List<Vector2> candidates, Vector2 mapCenter) {
+    if (candidates.isEmpty || GamePlayer.current == null) return;
+
+    // pick the doorway on the side we should arrive on (matches entry side)
+    Vector2 chosen = candidates.first;
+    for (final c in candidates) {
+      switch (widget.showInEnum) {
+        case ShowInEnum.right:  if (c.x > chosen.x) chosen = c; break;
+        case ShowInEnum.left:   if (c.x < chosen.x) chosen = c; break;
+        case ShowInEnum.top:    if (c.y < chosen.y) chosen = c; break;
+        case ShowInEnum.bottom: if (c.y > chosen.y) chosen = c; break;
+        default: break;
+      }
+    }
+
+    // step inward from the doorway so we don't immediately re-trigger it
+    final inward = mapCenter - chosen;
+    if (inward.length2 > 0) {
+      inward.normalize();
+      chosen = chosen + inward * (tileSize * 2.5);
+    }
+    GamePlayer.current.position = chosen;
   }
 
   void addComponent(GameComponent gameComponent) {
@@ -76,13 +142,6 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     this._controller.remove(gameComponent);
   }
 
-  void moveComponent(GameComponent gameComponent, PlayerMoveData playerMoveData) {
-    // move the player the message is actually for, not just the first enemy
-    if (gameComponent is RemotePlayer) {
-      gameComponent.moveRemotePlayer(playerMoveData);
-    }
-  }
-
   TiledWorldMap _initMap(BuildContext context) {
     return TiledWorldMap(
       'maps/${GameState.mapLocation}/data.json',
@@ -90,31 +149,40 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
     );
   }
 
+  static bool get _isTouchPlatform {
+    if (kIsWeb) return true;
+    return defaultTargetPlatform == TargetPlatform.android ||
+           defaultTargetPlatform == TargetPlatform.iOS;
+  }
+
+  Joystick _buildJoystick() {
+    return Joystick(
+      keyboardConfig: KeyboardConfig(enable: true),
+      directional: _isTouchPlatform ? JoystickDirectional() : null,
+      actions: _isTouchPlatform ? [
+        JoystickAction(
+          actionId: 1,
+          sprite: Sprite.load('buttons/background.png'),
+          spritePressed: Sprite.load('buttons/atack_range.png'),
+          align: JoystickActionAlign.BOTTOM_RIGHT,
+          color: Colors.blue,
+          size: 50,
+          margin: EdgeInsets.only(bottom: 50, right: 160),
+        )
+      ] : [],
+    );
+  }
+
   Widget _buildInterface(BuildContext context) {
     return BonfireTiledWidget(
       showCollisionArea: kDebugMode,
       showFPS: kDebugMode,
-      joystick: Joystick(
-        keyboardConfig: KeyboardConfig(
-          enable: true,
-        ),
-        directional: JoystickDirectional(),
-        actions: [
-          JoystickAction(
-            actionId: 1, //(required) Action identifier, will be sent to 'void joystickAction(JoystickActionEvent event) {}' when pressed
-            sprite: Sprite.load('buttons/background.png'), // the action image
-            spritePressed: Sprite.load('buttons/atack_range.png'), // Optional image to be shown when the action is fired
-            align: JoystickActionAlign.BOTTOM_RIGHT,
-            color: Colors.blue,
-            size: 50,
-            margin: EdgeInsets.only(bottom: 50, right: 160),
-          )
-        ],
-      ),
+      joystick: _buildJoystick(),
       player: GamePlayer(
         _getInitPosition(),
         SpriteSheetHero.current,
         initDirection: _getDirection(),
+        map: GameState.mapLocation,
       ),
       map: GameState.mapData,
       colorFilter: GameColorFilter(color: Color.fromRGBO(255, 112, 214, 0.66), blendMode: BlendMode.hue),
@@ -139,12 +207,15 @@ class GameState extends State<Game> with WidgetsBindingObserver implements GameL
       developer.log('exit sensor "$value" has no target biome; ignoring', name: 'project_armoire.Game');
       return;
     }
+    final fromMap = GameState.mapLocation;
     GameState.mapLocation = target.biome;
-    // reuse the global key so networking (gameStateKey.currentState) keeps
-    // working after a map transition
+    // this is a transition, not a real exit: don't broadcast a leave
+    GamePlayer.suppressLeaveOnRemove = true;
+    // build a fresh game for the new map (no shared key); networking reaches it
+    // via GameState.current. fromMap lets us spawn at the paired return doorway
     context.goTo(Game(
-      key: gameStateKey,
       showInEnum: target.entrySide,
+      fromMap: fromMap,
     ));
   }
 
