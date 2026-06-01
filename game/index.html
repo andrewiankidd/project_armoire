@@ -2,28 +2,23 @@
 <html>
 <head>
   <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+    The web client is served from a sub-path on GitHub Pages
+    (/project_armoire/game/), so the base href must match. The landing site
+    lives separately in .github/pages and is served from the root.
   -->
-  <base href="/project_armoire/game">
+  <base href="/project_armoire/game/">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Project Armoire — an open-source, cross-platform, hacky multiplayer RPG sandbox built with Flame + Bonfire in Flutter.">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="project_armoire">
+  <meta name="apple-mobile-web-app-title" content="Project Armoire">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <title>project_armoire</title>
+  <title>Project Armoire</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -31,7 +26,7 @@
        application. For more information, see:
        https://developers.google.com/web/fundamentals/primers/service-workers -->
   <script>
-    var serviceWorkerVersion = '3951091445';
+    var serviceWorkerVersion = '3909281276';
     var scriptLoaded = false;
     function loadMainDartJs() {
       if (scriptLoaded) {
